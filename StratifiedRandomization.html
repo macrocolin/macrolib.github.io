@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>临床研究受试者分层随机化演示</title>
+    <style>
+        /* ============================================
+           Design tokens aligned with macrolib.com
+           (BookStack-based clinical macro library)
+           ============================================ */
+        :root {
+            --color-primary: #206ea7;
+            --color-primary-light: rgba(32,110,167,0.15);
+            --color-link: #206ea7;
+
+            /* Entity semantic colors (BookStack mapping) */
+            --color-book:     #077b70;   /* teal   → Trt T */
+            --color-chapter:  #af4d0d;   /* orange → Trt R */
+            --color-page:     #206ea7;   /* blue   → Strata A */
+            --color-draft:    #7e50b1;   /* purple → Strata B */
+            --color-bookshelf:#a94747;   /* red    → danger */
+
+            --color-positive: #0f7d15;
+            --color-negative: #ab0f0e;
+            --color-warning:  #cf4d03;
+            --color-info:     #0288D1;
+
+            --bg-body: #f5f5f5;
+            --bg-card: #ffffff;
+            --text-primary: #444;
+            --text-muted: #777;
+            --text-heading: #222;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Oxygen, Ubuntu, Roboto, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+            --font-code: "Lucida Console", "DejaVu Sans Mono", "Ubuntu Mono", Monaco, monospace;
+
+            --radius-s: 3px;
+            --radius-m: 4px;
+            --radius-l: 8px;
+
+            --shadow-card: 0 1px 6px -1px rgba(0,0,0,0.1);
+            --shadow-sub:  0 1px 3px 0 rgba(0,0,0,0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-size: 14px;
+            -webkit-font-smoothing: antialiased;
+            padding: 20px;
+        }
+
+        .container { max-width: 1300px; margin: 0 auto; }
+
+        header { text-align: center; margin-bottom: 24px; }
+        h1 {
+            color: var(--text-heading);
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        /* ========== 设置面板 ========== */
+        .settings-panel {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: var(--radius-s);
+            box-shadow: var(--shadow-card);
+            margin-bottom: 24px;
+            border-left: 4px solid var(--color-primary);
+        }
+        .settings-panel h3 {
+            color: var(--text-heading);
+            margin-bottom: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .settings-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-end;
+        }
+        .setting-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-height: 96px;
+            justify-content: flex-start;
+        }
+        .setting-item label {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .setting-item input, .setting-item select {
+            padding: 7px 12px;
+            border: 1px solid #ddd;
+            border-radius: var(--radius-m);
+            font-size: 0.9rem;
+            font-family: var(--font-body);
+            width: 110px;
+            color: var(--text-primary);
+            background: #fff;
+            transition: border-color ease-in-out 120ms, box-shadow ease-in-out 120ms;
+        }
+        .setting-item input:focus, .setting-item select:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px var(--color-primary-light);
+        }
+        .setting-hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+            min-height: 1.1em;
+        }
+
+        /* ========== 控制面板 ========== */
+        .control-panel {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: var(--radius-s);
+            box-shadow: var(--shadow-card);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 24px;
+        }
+
+        .stats-display { display: flex; gap: 24px; font-weight: 600; }
+        .stat-item { display: flex; flex-direction: column; align-items: center; }
+        .stat-value { font-size: 1.5rem; color: var(--color-primary); font-weight: 700; }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
+        /* ========== 按钮 (macrolib .button style) ========== */
+        button {
+            text-decoration: none;
+            font-size: 0.85rem;
+            line-height: 1.4em;
+            padding: 7.8px 16px;
+            margin-top: 6px;
+            margin-bottom: 6px;
+            display: inline-block;
+            font-weight: 400;
+            outline: 0;
+            border-radius: var(--radius-m);
+            cursor: pointer;
+            transition: background-color ease-in-out 120ms, filter ease-in-out 120ms, box-shadow ease-in-out 120ms;
+            border: 1px solid transparent;
+            vertical-align: top;
+            font-family: var(--font-body);
+        }
+
+        .btn-enroll { background-color: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+        .btn-enroll:hover { filter: brightness(1.1); }
+        .btn-reset { background-color: var(--color-negative); color: #fff; border-color: var(--color-negative); }
+        .btn-reset:hover { filter: brightness(1.1); }
+        .btn-auto { background-color: var(--color-book); color: #fff; border-color: var(--color-book); }
+        .btn-auto:hover { filter: brightness(1.1); }
+
+        button:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+
+        /* ========== 分层卡片 ========== */
+        .strata-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .strata-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-s);
+            padding: 20px;
+            box-shadow: var(--shadow-card);
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .strata-card.strata-a { border-left-color: var(--color-page); }
+        .strata-card.strata-b { border-left-color: var(--color-draft); }
+
+        .strata-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .strata-title { font-size: 1rem; font-weight: 600; color: var(--text-heading); }
+
+        .balance-bar {
+            height: 8px;
+            background: #eee;
+            border-radius: var(--radius-s);
+            overflow: hidden;
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .bal-t { background: var(--color-book); transition: width 0.5s ease; }
+        .bal-r { background: var(--color-chapter); transition: width 0.5s ease; }
+
+        .group-counts { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-primary); }
+
+        /* ========== 盲底面板 ========== */
+        .blind-panel {
+            background: var(--bg-card);
+            border-radius: var(--radius-s);
+            box-shadow: var(--shadow-card);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        .blind-header {
+            background: var(--color-primary);
+            color: #fff;
+            padding: 14px 20px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95rem;
+        }
+        .blind-header small { font-weight: 400; opacity: 0.85; font-size: 0.78rem; }
+        .blind-body { padding: 20px; }
+        .blind-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 900px) {
+            .blind-grid { grid-template-columns: 1fr; }
+        }
+        .blind-strata {
+            margin-bottom: 0;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: var(--radius-s);
+            border: 1px solid #eee;
+        }
+        .blind-strata-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-heading);
+            font-size: 0.95rem;
+        }
+        .blind-blocks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: flex-start;
+        }
+        .blind-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .blind-block-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+        .blind-block-items {
+            display: flex;
+            gap: 3px;
+            padding: 6px 8px;
+            background: #fff;
+            border-radius: var(--radius-s);
+            border: 1px solid #ddd;
+        }
+        .blind-block-items.current {
+            border-color: var(--color-primary);
+            border-width: 2px;
+            box-shadow: 0 0 0 2px var(--color-primary-light);
+        }
+        .blind-block-items.used {
+            opacity: 0.5;
+        }
+        .blind-slot {
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-s);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #fff;
+            position: relative;
+        }
+        .blind-slot.slot-t { background: var(--color-book); }
+        .blind-slot.slot-r { background: var(--color-chapter); }
+        .blind-slot.consumed::after {
+            content: '✓';
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            font-size: 0.6rem;
+            background: #fff;
+            color: var(--color-positive);
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .blind-slot.next {
+            outline: 2px solid var(--color-warning);
+            outline-offset: 1px;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { outline-color: var(--color-warning); }
+            50% { outline-color: var(--color-chapter); }
+        }
+
+        .blind-legend {
+            display: flex;
+            gap: 15px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+        }
+        .blind-legend-item { display: flex; align-items: center; gap: 5px; }
+        .legend-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: var(--radius-s);
+            display: inline-block;
+        }
+
+        .blind-summary {
+            margin-top: 12px;
+            padding: 10px;
+            background: #fff;
+            border-radius: var(--radius-s);
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            border: 1px solid #eee;
+        }
+        .blind-summary code {
+            background: var(--color-primary-light);
+            color: var(--color-primary);
+            padding: 2px 6px;
+            border-radius: var(--radius-s);
+            font-family: var(--font-code);
+            font-size: 0.8rem;
+        }
+
+        /* ========== 日志表格 ========== */
+        .randomization-log {
+            background: var(--bg-card);
+            border-radius: var(--radius-s);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+        }
+
+        .log-header {
+            background: var(--color-primary);
+            color: #fff;
+            padding: 14px 20px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .log-table th, .log-table td {
+            padding: 10px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            font-size: 0.85rem;
+        }
+
+        .log-table th {
+            background: #f8f8f8;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-weight: 600;
+        }
+
+        .log-table tr.new-row { animation: highlight 1s ease-out; }
+        @keyframes highlight {
+            0% { background-color: #fffbe6; }
+            100% { background-color: transparent; }
+        }
+
+        .badge {
+            padding: 2px 8px;
+            border-radius: var(--radius-s);
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #fff;
+            display: inline-block;
+        }
+        .badge-a { background: var(--color-page); }
+        .badge-b { background: var(--color-draft); }
+        .badge-trt-t { background: var(--color-book); }
+        .badge-trt-r { background: var(--color-chapter); }
+
+        .empty-state { padding: 40px; text-align: center; color: #aaa; }
+
+        .log-scroll { max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🏥 动态分层随机化演示系统</h1>
+    </header>
+
+    <!-- 参数设置面板 -->
+    <div class="settings-panel">
+        <h3>⚙️ 研究参数设置（修改后自动应用，将重置当前研究）</h3>
+        <div class="settings-row">
+            <div class="setting-item">
+                <label for="inputN">总样本量 N</label>
+                <input type="number" id="inputN" value="80" min="2" max="10000" step="1">
+                <span class="setting-hint">建议 ≥ 区组大小 × 分层数</span>
+            </div>
+            <div class="setting-item">
+                <label for="inputRatioT">T 组比例</label>
+                <input type="number" id="inputRatioT" value="1" min="1" max="10" step="1">
+                <span class="setting-hint">Treatment</span>
+            </div>
+            <div class="setting-item">
+                <label for="inputRatioR">R 组比例</label>
+                <input type="number" id="inputRatioR" value="1" min="1" max="10" step="1">
+                <span class="setting-hint">Reference</span>
+            </div>
+            <div class="setting-item">
+                <label for="inputBlockMultiplier">区组倍数 k</label>
+                <input type="number" id="inputBlockMultiplier" value="2" min="1" max="10" step="1">
+                <span class="setting-hint">区组大小 = k × (T+R)</span>
+            </div>
+            <div class="setting-item">
+                <label for="inputStrataARatio">A 分层比例</label>
+                <input type="number" id="inputStrataARatio" value="35" min="0" max="100" step="1">
+                <span class="setting-hint">模拟入组时 A 分层概率 (%)</span>
+            </div>
+            <div class="setting-item">
+                <label>&nbsp;</label>
+                <span class="setting-hint" style="color:var(--color-positive); font-weight:600;">✏️ 修改后自动应用</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 控制与统计 -->
+    <div class="control-panel">
+        <div class="stats-display">
+            <div class="stat-item">
+                <span class="stat-value" id="totalEnrolled">0</span>
+                <span class="stat-label">已入组</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="totalTarget">80</span>
+                <span class="stat-label">目标 N</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="balanceRatio">-</span>
+                <span class="stat-label">全局 T : R</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="targetRatio">1 : 1</span>
+                <span class="stat-label">目标比例</span>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn-auto" id="btnAuto" onclick="toggleAutoEnroll()">▶ 自动入组</button>
+            <button class="btn-enroll" id="btnSingle" onclick="enrollSubject()">+ 入组 1 例</button>
+            <button class="btn-reset" onclick="resetStudy()">🔄 重置</button>
+        </div>
+    </div>
+
+    <!-- 分层卡片 -->
+    <div class="strata-container">
+        <div class="strata-card strata-a">
+            <div class="strata-header">
+                <span class="strata-title">🅰️ A 分层</span>
+                <span id="aCount">0 例</span>
+            </div>
+            <div class="balance-bar">
+                <div class="bal-t" id="aBarT" style="width: 50%"></div>
+                <div class="bal-r" id="aBarR" style="width: 50%"></div>
+            </div>
+            <div class="group-counts">
+                <span>Trt T: <strong id="aTrtT">0</strong></span>
+                <span>Trt R: <strong id="aTrtR">0</strong></span>
+            </div>
+        </div>
+
+        <div class="strata-card strata-b">
+            <div class="strata-header">
+                <span class="strata-title">🅱️ B 分层</span>
+                <span id="bCount">0 例</span>
+            </div>
+            <div class="balance-bar">
+                <div class="bal-t" id="bBarT" style="width: 50%"></div>
+                <div class="bal-r" id="bBarR" style="width: 50%"></div>
+            </div>
+            <div class="group-counts">
+                <span>Trt T: <strong id="bTrtT">0</strong></span>
+                <span>Trt R: <strong id="bTrtR">0</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 盲底展示面板 -->
+    <div class="blind-panel">
+        <div class="blind-header">
+            <span>🔐 盲底展示（随机分配序列 · 实时同步）</span>
+            <small>每个方格代表一次分配，✓ 表示已被使用，黄色边框为下一次分配</small>
+        </div>
+        <div class="blind-body" id="blindBody">
+            <!-- 动态填充 -->
+        </div>
+    </div>
+
+    <!-- 随机化日志 -->
+    <div class="randomization-log">
+        <div class="log-header">📋 实时随机化分配日志</div>
+        <div class="log-scroll">
+            <table class="log-table">
+                <thead>
+                    <tr>
+                        <th>受试者编号</th>
+                        <th>入组时间</th>
+                        <th>分层</th>
+                        <th>分配组别</th>
+                        <th>该层 T:R</th>
+                        <th>所在区组 #</th>
+                        <th>区组内位置</th>
+                    </tr>
+                </thead>
+                <tbody id="logBody">
+                    <tr><td colspan="7" class="empty-state">等待首位受试者入组...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    /**
+     * 临床研究分层随机化核心逻辑
+     * - 分层：A / B
+     * - 治疗组：T (Treatment) / R (Reference)
+     * - 支持任意 T:R 比例
+     * - 支持可调样本量 N
+     * - 支持可调区组大小（k × (T+R)）
+     * - 实时展示盲底：每个分层已生成的区组序列、当前使用位置、已消耗标记
+     */
+
+    // 研究配置（可被用户修改）
+    let STUDY_CONFIG = {
+        totalSample: 80,
+        ratioT: 1,          // T 组比例
+        ratioR: 1,          // R 组比例
+        blockMultiplier: 2, // 区组大小 = blockMultiplier × (ratioT + ratioR)
+        strataAProbability: 0.35,  // A 分层概率
+        strata: ['A', 'B']
+    };
+
+    // 状态管理
+    let state = {
+        enrolled: 0,
+        logs: [],
+        strataStats: {},
+        autoMode: false,
+        autoTimer: null,
+        autoSpeed: 350
+    };
+
+    // 初始化每个分层的状态
+    function initStrataState() {
+        state.strataStats = {};
+        const blockSize = (STUDY_CONFIG.ratioT + STUDY_CONFIG.ratioR) * STUDY_CONFIG.blockMultiplier;
+        const blocksPerStrata = Math.ceil(STUDY_CONFIG.totalSample / blockSize);
+        
+        STUDY_CONFIG.strata.forEach(s => {
+            const blocks = [];
+            for (let i = 0; i < blocksPerStrata; i++) {
+                blocks.push(generateBlock());
+            }
+            
+            state.strataStats[s] = {
+                T: 0,
+                R: 0,
+                blocks: blocks,
+                currentBlockIndex: 0
+            };
+        });
+    }
+
+    // 根据比例生成一个区组（大小为 k × (ratioT + ratioR)），内容为 T / R
+    function generateBlock() {
+        const block = [];
+        for (let i = 0; i < STUDY_CONFIG.ratioT * STUDY_CONFIG.blockMultiplier; i++) block.push('T');
+        for (let i = 0; i < STUDY_CONFIG.ratioR * STUDY_CONFIG.blockMultiplier; i++) block.push('R');
+        // Fisher-Yates 洗牌
+        for (let i = block.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [block[i], block[j]] = [block[j], block[i]];
+        }
+        return { items: block, consumed: 0 };
+    }
+
+    // 获取随机化分配，并返回盲底信息
+    function getRandomization(strata) {
+        const stats = state.strataStats[strata];
+
+        if (stats.blocks[stats.currentBlockIndex].consumed >= stats.blocks[stats.currentBlockIndex].items.length) {
+            stats.currentBlockIndex++;
+        }
+
+        const currentBlock = stats.blocks[stats.currentBlockIndex];
+        const positionInBlock = currentBlock.consumed;
+        const assignment = currentBlock.items[positionInBlock]; // 'T' or 'R'
+        currentBlock.consumed++;
+
+        return {
+            assignment: assignment === 'T' ? 'Treatment T' : 'Treatment R',
+            blockIndex: stats.currentBlockIndex,
+            positionInBlock: positionInBlock
+        };
+    }
+
+    // 入组一例
+    function enrollSubject() {
+        if (state.enrolled >= STUDY_CONFIG.totalSample) {
+            if (state.autoMode) toggleAutoEnroll();
+            alert(`研究已满员！已达到预设的 ${STUDY_CONFIG.totalSample} 例样本量。`);
+            return;
+        }
+
+        state.enrolled++;
+
+        // 按设定的分层概率分层
+        const strata = Math.random() < STUDY_CONFIG.strataAProbability ? 'A' : 'B';
+        const rand = getRandomization(strata);
+
+        // 更新分层统计
+        if (rand.assignment === 'Treatment T') state.strataStats[strata].T++;
+        else state.strataStats[strata].R++;
+
+        // 日志
+        const logEntry = {
+            id: `SCR-${String(state.enrolled).padStart(3, '0')}`,
+            time: new Date().toLocaleTimeString(),
+            strata: strata,
+            assignment: rand.assignment,
+            balance: `${state.strataStats[strata].T}:${state.strataStats[strata].R}`,
+            blockIndex: rand.blockIndex,
+            positionInBlock: rand.positionInBlock
+        };
+
+        state.logs.unshift(logEntry);
+        updateUI(logEntry);
+    }
+
+    // 更新界面
+    function updateUI(newLog = null) {
+        // 全局统计
+        document.getElementById('totalEnrolled').textContent = state.enrolled;
+        document.getElementById('totalTarget').textContent = STUDY_CONFIG.totalSample;
+        const totalT = state.strataStats.A.T + state.strataStats.B.T;
+        const totalR = state.strataStats.A.R + state.strataStats.B.R;
+        document.getElementById('balanceRatio').textContent = totalT === 0 && totalR === 0 ? '-' : `${totalT}:${totalR}`;
+        document.getElementById('targetRatio').textContent = `${STUDY_CONFIG.ratioT} : ${STUDY_CONFIG.ratioR}`;
+
+        // 分层卡片
+        ['A', 'B'].forEach(strata => {
+            const stats = state.strataStats[strata];
+            const total = stats.T + stats.R;
+            const prefix = strata.toLowerCase();
+
+            document.getElementById(`${prefix}Count`).textContent = `${total} 例`;
+            document.getElementById(`${prefix}TrtT`).textContent = stats.T;
+            document.getElementById(`${prefix}TrtR`).textContent = stats.R;
+
+            const pctT = total === 0 ? (STUDY_CONFIG.ratioT / (STUDY_CONFIG.ratioT + STUDY_CONFIG.ratioR)) * 100
+                                     : (stats.T / total) * 100;
+            const pctR = total === 0 ? (STUDY_CONFIG.ratioR / (STUDY_CONFIG.ratioT + STUDY_CONFIG.ratioR)) * 100
+                                     : (stats.R / total) * 100;
+            document.getElementById(`${prefix}BarT`).style.width = `${pctT}%`;
+            document.getElementById(`${prefix}BarR`).style.width = `${pctR}%`;
+        });
+
+        // 盲底
+        renderBlind();
+
+        // 日志
+        const tbody = document.getElementById('logBody');
+        if (state.logs.length === 1 && newLog) {
+            tbody.innerHTML = '';
+        }
+        if (newLog) {
+            const tr = document.createElement('tr');
+            tr.className = 'new-row';
+            tr.innerHTML = `
+                <td><strong>${newLog.id}</strong></td>
+                <td>${newLog.time}</td>
+                <td><span class="badge badge-${newLog.strata.toLowerCase()}">${newLog.strata} 分层</span></td>
+                <td><span class="badge badge-${newLog.assignment === 'Treatment T' ? 'trt-t' : 'trt-r'}">${newLog.assignment}</span></td>
+                <td>${newLog.balance}</td>
+                <td>区组 #${newLog.blockIndex + 1}</td>
+                <td>第 ${newLog.positionInBlock + 1} 位</td>
+            `;
+            tbody.prepend(tr);
+        }
+    }
+
+    // 渲染盲底面板
+    function renderBlind() {
+        const container = document.getElementById('blindBody');
+        const actualBlockSize = (STUDY_CONFIG.ratioT + STUDY_CONFIG.ratioR) * STUDY_CONFIG.blockMultiplier;
+
+        let html = '<div class="blind-grid">';
+
+        ['A', 'B'].forEach(strata => {
+            const stats = state.strataStats[strata];
+            const label = strata === 'A' ? '🅰️ A 分层' : '🅱️ B 分层';
+
+            html += `<div class="blind-strata">`;
+            html += `<div class="blind-strata-title">${label} · 已生成 ${stats.blocks.length} 个区组 · 每区组 ${actualBlockSize} 例</div>`;
+            html += `<div class="blind-blocks">`;
+
+            stats.blocks.forEach((block, blockIdx) => {
+                const isCurrent = blockIdx === stats.currentBlockIndex;
+                const isUsed = blockIdx < stats.currentBlockIndex;
+
+                html += `<div class="blind-block">`;
+                html += `<div class="blind-block-label">区组 #${blockIdx + 1}${isCurrent ? ' (当前)' : ''}${isUsed ? ' (已用完)' : ''}</div>`;
+                html += `<div class="blind-block-items ${isCurrent ? 'current' : ''} ${isUsed ? 'used' : ''}">`;
+
+                block.items.forEach((item, slotIdx) => {
+                    const isConsumed = slotIdx < block.consumed;
+                    const isNext = isCurrent && slotIdx === block.consumed;
+                    const slotClass = item === 'T' ? 'slot-t' : 'slot-r';
+                    let extraClass = '';
+                    if (isConsumed) extraClass += ' consumed';
+                    if (isNext) extraClass += ' next';
+
+                    html += `<div class="blind-slot ${slotClass}${extraClass}" title="区组${blockIdx+1} 第${slotIdx+1}位 → Trt ${item}${isConsumed ? ' (已使用)' : ''}${isNext ? ' (下一次分配)' : ''}">${item}</div>`;
+                });
+
+                html += `</div></div>`;
+            });
+
+            html += `</div>`;
+
+            // 该分层汇总
+            const total = stats.T + stats.R;
+            const usedTotal = stats.blocks.reduce((s, b) => s + b.consumed, 0);
+            const generatedTotal = stats.blocks.length * actualBlockSize;
+            html += `<div class="blind-summary">`;
+            html += `📊 该分层已入组 <code>${total}</code> 例（T=<code>${stats.T}</code>, R=<code>${stats.R}</code>）`;
+            html += ` · 已消耗区组位置 <code>${usedTotal}</code> / 已生成 <code>${generatedTotal}</code>`;
+            if (total > 0) {
+                const actualRatio = stats.R === 0 ? '∞' : (stats.T / stats.R).toFixed(2);
+                html += ` · 实际 T/R = <code>${actualRatio}</code>，目标 = <code>${(STUDY_CONFIG.ratioT / STUDY_CONFIG.ratioR).toFixed(2)}</code>`;
+            }
+            html += `</div>`;
+
+            html += `</div>`;
+        });
+
+        html += '</div>';
+
+        // 图例
+        html += `<div class="blind-legend">`;
+        html += `<div class="blind-legend-item"><span class="legend-swatch" style="background:var(--color-book)"></span>Trt T</div>`;
+        html += `<div class="blind-legend-item"><span class="legend-swatch" style="background:var(--color-chapter)"></span>Trt R</div>`;
+        html += `<div class="blind-legend-item">✓ 已使用</div>`;
+        html += `<div class="blind-legend-item" style="color:var(--color-warning)">▢ 黄色边框 = 下一次分配</div>`;
+        html += `</div>`;
+
+        container.innerHTML = html;
+    }
+
+    // 自动入组
+    function toggleAutoEnroll() {
+        state.autoMode = !state.autoMode;
+        const btn = document.getElementById('btnAuto');
+        const singleBtn = document.getElementById('btnSingle');
+
+        if (state.autoMode) {
+            btn.textContent = '⏸ 暂停';
+            btn.style.background = 'var(--color-warning)';
+            btn.style.borderColor = 'var(--color-warning)';
+            singleBtn.disabled = true;
+            state.autoTimer = setInterval(() => {
+                if (state.enrolled < STUDY_CONFIG.totalSample) {
+                    enrollSubject();
+                } else {
+                    toggleAutoEnroll();
+                }
+            }, state.autoSpeed);
+        } else {
+            btn.textContent = '▶ 自动入组';
+            btn.style.background = 'var(--color-book)';
+            btn.style.borderColor = 'var(--color-book)';
+            singleBtn.disabled = false;
+            clearInterval(state.autoTimer);
+        }
+    }
+
+    // 应用设置
+    function applySettings() {
+        const n = parseInt(document.getElementById('inputN').value);
+        const rT = parseInt(document.getElementById('inputRatioT').value);
+        const rR = parseInt(document.getElementById('inputRatioR').value);
+        const k = parseInt(document.getElementById('inputBlockMultiplier').value);
+        const aPct = parseInt(document.getElementById('inputStrataARatio').value);
+
+        if (isNaN(n) || n < 2) return;
+        if (isNaN(rT) || rT < 1 || isNaN(rR) || rR < 1) return;
+        if (isNaN(k) || k < 1) return;
+        if (isNaN(aPct) || aPct < 0 || aPct > 100) return;
+
+        STUDY_CONFIG.totalSample = n;
+        STUDY_CONFIG.ratioT = rT;
+        STUDY_CONFIG.ratioR = rR;
+        STUDY_CONFIG.blockMultiplier = k;
+        STUDY_CONFIG.strataAProbability = aPct / 100;
+
+        resetStudy();
+    }
+
+    // 自动应用：监听所有输入框的变化
+    function setupAutoApply() {
+        const inputs = ['inputN', 'inputRatioT', 'inputRatioR', 'inputBlockMultiplier', 'inputStrataARatio'];
+        inputs.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', applySettings);
+                el.addEventListener('input', () => {
+                    clearTimeout(el._autoApplyTimer);
+                    el._autoApplyTimer = setTimeout(applySettings, 500);
+                });
+            }
+        });
+    }
+
+    // 重置研究
+    function resetStudy() {
+        if (state.autoMode) toggleAutoEnroll();
+        state.enrolled = 0;
+        state.logs = [];
+        initStrataState();
+        document.getElementById('logBody').innerHTML = '<tr><td colspan="7" class="empty-state">等待首位受试者入组...</td></tr>';
+        updateUI();
+    }
+
+    // 初始化
+    initStrataState();
+    updateUI();
+    setupAutoApply();
+</script>
+
+</body>
+</html>
