@@ -85,6 +85,7 @@
             flex-wrap: wrap;
             gap: 20px;
             align-items: flex-end;
+            justify-content: center;
         }
         .setting-item {
             display: flex;
@@ -216,12 +217,8 @@
             color: #fff;
             padding: 14px 20px;
             font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             font-size: 0.95rem;
         }
-        .blind-header small { font-weight: 400; opacity: 0.85; font-size: 0.78rem; }
         .blind-body { padding: 20px; }
         .blind-grid {
             display: grid;
@@ -419,7 +416,7 @@
 
     <!-- 参数设置面板 -->
     <div class="settings-panel">
-        <h3>⚙️ 研究参数设置（修改后自动应用，将重置当前研究）</h3>
+        <h3>⚙️ 研究参数设置</h3>
         <div class="settings-row">
             <div class="setting-item">
                 <label for="inputN">总样本量 N</label>
@@ -445,10 +442,6 @@
                 <label for="inputStrataARatio">A 分层比例</label>
                 <input type="number" id="inputStrataARatio" value="35" min="0" max="100" step="1">
                 <span class="setting-hint">模拟入组时 A 分层概率 (%)</span>
-            </div>
-            <div class="setting-item">
-                <label>&nbsp;</label>
-                <span class="setting-hint" style="color:var(--color-positive); font-weight:600;">✏️ 修改后自动应用</span>
             </div>
         </div>
     </div>
@@ -485,7 +478,7 @@
     <div class="strata-container">
         <div class="strata-card strata-a">
             <div class="strata-header">
-                <span class="strata-title">🅰️ A 分层</span>
+                <span class="strata-title">🅰️ 分层</span>
                 <span id="aCount">0 例</span>
             </div>
             <div class="balance-bar">
@@ -500,7 +493,7 @@
 
         <div class="strata-card strata-b">
             <div class="strata-header">
-                <span class="strata-title">🅱️ B 分层</span>
+                <span class="strata-title">🅱️ 分层</span>
                 <span id="bCount">0 例</span>
             </div>
             <div class="balance-bar">
@@ -517,8 +510,7 @@
     <!-- 盲底展示面板 -->
     <div class="blind-panel">
         <div class="blind-header">
-            <span>🔐 盲底展示（随机分配序列 · 实时同步）</span>
-            <small>每个方格代表一次分配，✓ 表示已被使用，黄色边框为下一次分配</small>
+            <span>🔐 盲底展示</span>
         </div>
         <div class="blind-body" id="blindBody">
             <!-- 动态填充 -->
@@ -709,8 +701,8 @@
             tr.innerHTML = `
                 <td><strong>${newLog.id}</strong></td>
                 <td>${newLog.time}</td>
-                <td><span class="badge badge-${newLog.strata.toLowerCase()}">${newLog.strata} 分层</span></td>
-                <td><span class="badge badge-${newLog.assignment === 'Treatment T' ? 'trt-t' : 'trt-r'}">${newLog.assignment}</span></td>
+                <td>${newLog.strata}</td>
+                <td><span class="badge badge-${newLog.assignment === 'Treatment T' ? 'trt-t' : 'trt-r'}">${newLog.assignment === 'Treatment T' ? 'T' : 'R'}</span></td>
                 <td>${newLog.balance}</td>
                 <td>区组 #${newLog.blockIndex + 1}</td>
                 <td>第 ${newLog.positionInBlock + 1} 位</td>
@@ -728,7 +720,7 @@
 
         ['A', 'B'].forEach(strata => {
             const stats = state.strataStats[strata];
-            const label = strata === 'A' ? '🅰️ A 分层' : '🅱️ B 分层';
+            const label = strata === 'A' ? '🅰️ 分层' : '🅱️ 分层';
 
             html += `<div class="blind-strata">`;
             html += `<div class="blind-strata-title">${label} · 已生成 ${stats.blocks.length} 个区组 · 每区组 ${actualBlockSize} 例</div>`;
