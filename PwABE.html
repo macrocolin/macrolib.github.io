@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>生物等效性样本量评估</title>
+<style>
+  :root {
+    --color-primary: #206ea7;
+    --color-primary-light: rgba(32,110,167,0.15);
+    --color-book: #077b70;
+    --color-chapter: #af4d0d;
+    --color-page: #206ea7;
+    --color-draft: #7e50b1;
+    --color-bookshelf: #a94747;
+    --color-positive: #0f7d15;
+    --color-negative: #ab0f0e;
+    --color-warning: #cf4d03;
+    --color-info: #0288D1;
+    --bg-body: #f5f5f5;
+    --bg-card: #ffffff;
+    --text-primary: #444;
+    --text-muted: #777;
+    --text-heading: #222;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Oxygen, Ubuntu, Roboto, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    --radius-s: 3px;
+    --radius-m: 4px;
+    --radius-l: 8px;
+    --shadow-card: 0 1px 6px -1px rgba(0,0,0,0.1);
+    --shadow-sub: 0 1px 3px 0 rgba(0,0,0,0.1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-body);
+    background: var(--bg-body);
+    color: var(--text-primary);
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    padding: 20px;
+  }
+  .container {
+    max-width: 1300px;
+    margin: 0 auto;
+    background: var(--bg-card);
+    padding: 30px;
+    border-radius: var(--radius-l);
+    box-shadow: var(--shadow-card);
+  }
+  h1 {
+    color: var(--text-heading);
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  h2 {
+    color: var(--text-heading);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  h2::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 18px;
+    background: var(--color-primary);
+    border-radius: 2px;
+  }
+  .section {
+    margin-bottom: 20px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+  }
+  .field label {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .field .hint {
+    color: var(--text-muted);
+    font-weight: 400;
+    font-size: 0.8rem;
+  }
+  .field input, .field select {
+    width: 100%;
+    padding: 7px 12px;
+    border: 1px solid #ddd;
+    border-radius: var(--radius-m);
+    font-size: 0.9rem;
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    background: #fff;
+    transition: border-color ease-in-out 120ms, box-shadow ease-in-out 120ms;
+  }
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary-light);
+  }
+  .buttons {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+  }
+  button {
+    text-decoration: none;
+    font-size: 0.85rem;
+    line-height: 1.4em;
+    padding: 7.8px 16px;
+    margin: 6px 0;
+    display: inline-block;
+    font-weight: 400;
+    outline: 0;
+    border-radius: var(--radius-m);
+    cursor: pointer;
+    transition: background-color ease-in-out 120ms, filter ease-in-out 120ms, box-shadow ease-in-out 120ms;
+    border: 1px solid transparent;
+    vertical-align: top;
+    font-family: var(--font-body);
+  }
+  button:hover {
+    filter: brightness(1.1);
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: none;
+  }
+  .btn-primary {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+  }
+  .btn-secondary {
+    background: #edf2f7;
+    color: var(--text-primary);
+    border-color: #ddd;
+  }
+  .btn-secondary:hover {
+    background: #e2e8f0;
+  }
+  .results {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .result-card {
+    background: var(--bg-card);
+    border: 1px solid #e0e0e0;
+    border-left: 4px solid var(--color-primary);
+    border-radius: var(--radius-s);
+    padding: 16px 18px;
+    box-shadow: var(--shadow-sub);
+  }
+  .result-card .label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .result-card .value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .result-card .sub {
+    font-size: 0.8em;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .summary {
+    grid-column: 1 / -1;
+  }
+  .summary-text {
+    color: var(--text-primary);
+    line-height: 1.9;
+    font-size: 0.95em;
+    margin-top: 4px;
+  }
+  @media (max-width: 520px) {
+    .results { grid-template-columns: 1fr; }
+    .container { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>生物等效性样本量评估</h1>
+
+  <div class="section">
+    <h2>计算类型</h2>
+    <div class="grid">
+      <div class="field">
+        <label>计算目标 <span class="hint">(Calculate for)</span></label>
+        <select id="type">
+          <option value="power">统计功效 (Power)</option>
+          <option value="sampleSize">样本量 (Sample Size)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>研究设计 <span class="hint">(Study Design)</span></label>
+        <select id="design">
+          <option value="2x2x2">2x2x2 交叉设计</option>
+          <option value="2x3x3">2x3x3 交叉设计</option>
+          <option value="2x2x4">2x2x4 交叉设计</option>
+          <option value="parallel">平行设计</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>接受标准</h2>
+    <div class="grid">
+      <div class="field">
+        <label>下限 <span class="hint">(Lower Limit)</span></label>
+        <input type="number" id="limitLower" value="0.8" step="0.01">
+      </div>
+      <div class="field">
+        <label>上限 <span class="hint">(Upper Limit)</span></label>
+        <input type="number" id="limitUpper" value="1.25" step="0.01">
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>假设参数</h2>
+    <div class="grid">
+      <div class="field">
+        <label>预期几何均值比 <span class="hint">(Expected GMR)</span></label>
+        <input type="number" id="gmr" value="0.9" step="0.01">
+      </div>
+      <div class="field">
+        <label>预期变异系数 <span class="hint">(Expected CV)</span></label>
+        <input type="number" id="cv" value="0.2" step="0.01">
+      </div>
+      <div class="field">
+        <label>单侧α <span class="hint">(One-sided Alpha)</span></label>
+        <input type="number" id="alpha" value="0.05" step="0.01">
+      </div>
+      <div class="field" id="valueField">
+        <label id="valueLabel">样本量 <span class="hint">(Sample Size)</span></label>
+        <input type="number" id="value" value="24" step="1">
+      </div>
+    </div>
+  </div>
+
+  <div class="buttons">
+    <button class="btn-primary" onclick="calculate()">计算</button>
+    <button class="btn-secondary" onclick="resetDefaults()">重置默认值</button>
+  </div>
+
+  <div class="results">
+    <div class="result-card">
+      <div class="label">统计功效</div>
+      <div class="value" id="power_result">—</div>
+    </div>
+    <div class="result-card">
+      <div class="label">样本量</div>
+      <div class="value" id="sampleSize_result">—</div>
+    </div>
+    <div class="result-card summary">
+      <div class="label">计算结果说明</div>
+      <div class="summary-text" id="summary">—</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// 统计函数
+function erf(x) {
+  const sign = Math.sign(x);
+  x = Math.abs(x);
+  const a1 =  0.254829592;
+  const a2 = -0.284496736;
+  const a3 =  1.421413741;
+  const a4 = -1.453152027;
+  const a5 =  1.061405429;
+  const p  =  0.3275911;
+  const t = 1.0 / (1.0 + p * x);
+  const y = 1.0 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t * Math.exp(-x*x);
+  return sign * y;
+}
+
+function normalCDF(x) {
+  return 0.5 * (1.0 + erf(x / Math.SQRT2));
+}
+
+function normalQuantile(p) {
+  if (p <= 0 || p >= 1) return NaN;
+  if (p < 0.5) return -rationalApprox(Math.sqrt(-2 * Math.log(p)));
+  else return rationalApprox(Math.sqrt(-2 * Math.log(1 - p)));
+}
+
+function rationalApprox(t) {
+  const c = [2.515517, 0.802853, 0.010328];
+  const d = [1.432788, 0.189269, 0.001308];
+  return t - (c[0] + c[1] * t + c[2] * t * t) / (1 + d[0] * t + d[1] * t * t + d[2] * t * t * t);
+}
+
+function gamma(z) {
+  if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));
+  z -= 1;
+  const g = 7;
+  const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+    771.32342877765313, -176.61502916214059, 12.507343278686905,
+    -0.13857109526572012, 9.9843695780195716e-6, 1.1948723154820998e-8];
+  let x = c[0];
+  for (let i = 1; i < g + 2; i++) x += c[i] / (z + i);
+  const t = z + g + 0.5;
+  return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+}
+
+function logGamma(z) { return Math.log(gamma(z)); }
+
+function incompleteBeta(x, a, b) {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  if (x > (a + 1) / (a + b + 2)) return 1 - incompleteBeta(1 - x, b, a);
+  const lnBeta = logGamma(a) + logGamma(b) - logGamma(a + b);
+  const front = Math.exp(Math.log(x) * a + Math.log(1 - x) * b - lnBeta);
+  const maxIter = 200, eps = 1e-14, tiny = 1e-30;
+  let f = 1, c = 1, d = 1 - (a + b) * x / (a + 1);
+  if (Math.abs(d) < tiny) d = tiny;
+  d = 1 / d; f = d;
+  for (let m = 1; m <= maxIter; m++) {
+    let num = m * (b - m) * x / ((a + 2 * m - 1) * (a + 2 * m));
+    d = 1 + num * d; if (Math.abs(d) < tiny) d = tiny;
+    c = 1 + num / c; if (Math.abs(c) < tiny) c = tiny;
+    d = 1 / d; f *= c * d;
+    num = -(a + m) * (a + b + m) * x / ((a + 2 * m) * (a + 2 * m + 1));
+    d = 1 + num * d; if (Math.abs(d) < tiny) d = tiny;
+    c = 1 + num / c; if (Math.abs(c) < tiny) c = tiny;
+    d = 1 / d;
+    const delta = c * d; f *= delta;
+    if (Math.abs(delta - 1) < eps) break;
+  }
+  return front * f / a;
+}
+
+function tCDF(x, df) {
+  const t = df / (df + x * x);
+  const ibeta = incompleteBeta(t, df / 2, 0.5);
+  return x >= 0 ? 1 - 0.5 * ibeta : 0.5 * ibeta;
+}
+
+function centralTQuantile(p, df) {
+  if (p <= 0 || p >= 1 || df <= 0) return NaN;
+  let lower = -10, upper = 10;
+  while (tCDF(lower, df) > p) lower *= 2;
+  while (tCDF(upper, df) < p) upper *= 2;
+  for (let i = 0; i < 100; i++) {
+    const mid = (lower + upper) / 2;
+    if (Math.abs(tCDF(mid, df) - p) < 1e-12) return mid;
+    if (tCDF(mid, df) < p) lower = mid; else upper = mid;
+  }
+  return (lower + upper) / 2;
+}
+
+function calculatePower(alpha, theta1, theta2, theta0, CV, n, design) {
+  const sigma2 = Math.log(1 + CV * CV);
+  let se, df;
+  
+  switch(design) {
+    case '2x2x2': se = Math.sqrt(sigma2 / n); df = n - 2; break;
+    case '2x3x3': se = Math.sqrt(sigma2 / n); df = n - 3; break;
+    case '2x2x4': se = Math.sqrt(sigma2 / n); df = n - 3; break;
+    case 'parallel': se = Math.sqrt(2 * sigma2 / n); df = n - 2; break;
+    default: se = Math.sqrt(sigma2 / n); df = n - 2;
+  }
+  
+  if (df <= 0) return NaN;
+  
+  const lnTheta0 = Math.log(theta0);
+  const lnTheta1 = Math.log(theta1);
+  const lnTheta2 = Math.log(theta2);
+  
+  const critValue = centralTQuantile(1 - alpha, df);
+  
+  const z1 = (lnTheta2 - lnTheta0) / se - critValue;
+  const z2 = (lnTheta0 - lnTheta1) / se - critValue;
+  
+  const power = normalCDF(z1) + normalCDF(z2) - 1;
+  
+  return Math.max(0, Math.min(1, power));
+}
+
+function findSampleSize(alpha, targetPower, theta1, theta2, theta0, CV, design) {
+  let n = 2;
+  const maxN = 1000;
+  
+  while (n <= maxN) {
+    const power = calculatePower(alpha, theta1, theta2, theta0, CV, n, design);
+    if (power >= targetPower) {
+      return n;
+    }
+    n += 2;
+  }
+  
+  return n;
+}
+
+const defaults = {
+  type: 'power',
+  design: '2x2x2',
+  limitLower: 0.8,
+  limitUpper: 1.25,
+  gmr: 0.9,
+  cv: 0.2,
+  alpha: 0.05,
+  value: 24
+};
+
+function resetDefaults() {
+  document.getElementById('type').value = defaults.type;
+  document.getElementById('design').value = defaults.design;
+  document.getElementById('limitLower').value = defaults.limitLower;
+  document.getElementById('limitUpper').value = defaults.limitUpper;
+  document.getElementById('gmr').value = defaults.gmr;
+  document.getElementById('cv').value = defaults.cv;
+  document.getElementById('alpha').value = defaults.alpha;
+  document.getElementById('value').value = defaults.value;
+  updateValueLabel();
+  calculate();
+}
+
+function updateValueLabel() {
+  const type = document.getElementById('type').value;
+  const label = document.getElementById('valueLabel');
+  const input = document.getElementById('value');
+  
+  if (type === 'power') {
+    label.innerHTML = '样本量 <span class="hint">(Sample Size)</span>';
+    input.value = 24;
+  } else {
+    label.innerHTML = '目标功效 <span class="hint">(Target Power)</span>';
+    input.value = 0.9;
+  }
+}
+
+function calculate() {
+  const type = document.getElementById('type').value;
+  const design = document.getElementById('design').value;
+  const limitLower = parseFloat(document.getElementById('limitLower').value);
+  const limitUpper = parseFloat(document.getElementById('limitUpper').value);
+  const gmr = parseFloat(document.getElementById('gmr').value);
+  const cv = parseFloat(document.getElementById('cv').value);
+  const alpha = parseFloat(document.getElementById('alpha').value);
+  const value = parseFloat(document.getElementById('value').value);
+
+  if ([limitLower, limitUpper, gmr, cv, alpha, value].some(v => isNaN(v))) {
+    alert('请输入有效的数值参数');
+    return;
+  }
+
+  if (limitLower >= limitUpper) {
+    alert('下限必须小于上限');
+    return;
+  }
+
+  if (alpha <= 0 || alpha >= 1) {
+    alert('α必须在0和1之间');
+    return;
+  }
+
+  if (cv <= 0) {
+    alert('变异系数必须为正数');
+    return;
+  }
+
+  if (gmr <= 0) {
+    alert('几何均值比必须为正数');
+    return;
+  }
+
+  let power, sampleSize;
+
+  if (type === 'power') {
+    const n = Math.round(value);
+    if (n < 2) {
+      alert('样本量必须至少为2');
+      return;
+    }
+    power = calculatePower(alpha, limitLower, limitUpper, gmr, cv, n, design);
+    sampleSize = n;
+  } else {
+    const targetPower = value;
+    if (targetPower <= 0 || targetPower >= 1) {
+      alert('目标功效必须在0和1之间');
+      return;
+    }
+    sampleSize = findSampleSize(alpha, targetPower, limitLower, limitUpper, gmr, cv, design);
+    power = calculatePower(alpha, limitLower, limitUpper, gmr, cv, sampleSize, design);
+  }
+
+  document.getElementById('power_result').textContent = (power * 100).toFixed(2) + '%';
+  document.getElementById('sampleSize_result').textContent = sampleSize;
+
+  const designNames = {
+    '2x2x2': '2x2x2交叉设计',
+    '2x3x3': '2x3x3交叉设计',
+    '2x2x4': '2x2x4交叉设计',
+    'parallel': '平行设计'
+  };
+
+  const summaryText = `本研究采用${designNames[design]}进行生物等效性检验。接受标准为几何均值比在${limitLower}到${limitUpper}之间。预期几何均值比为${gmr}，变异系数为${cv}，单侧α为${alpha}。`;
+  
+  if (type === 'power') {
+    document.getElementById('summary').textContent = summaryText + `当样本量为${sampleSize}时，统计功效为${(power * 100).toFixed(2)}%。`;
+  } else {
+    document.getElementById('summary').textContent = summaryText + `为达到${(value * 100).toFixed(0)}%的目标功效，需要至少${sampleSize}例样本量，实际功效为${(power * 100).toFixed(2)}%。`;
+  }
+}
+
+document.getElementById('type').addEventListener('change', updateValueLabel);
+
+updateValueLabel();
+calculate();
+</script>
+</body>
+</html>
