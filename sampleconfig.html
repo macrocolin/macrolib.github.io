@@ -6,42 +6,35 @@
 <title>临床药动学和药效学采样配置</title>
 <style>
   :root {
-    /* 主色 */
     --color-primary: #206ea7;
     --color-primary-light: rgba(32,110,167,0.15);
     --color-link: #206ea7;
 
-    /* 语义色（BookStack 映射） */
-    --color-book:      #077b70;   /* teal   → 成功/主要操作 */
-    --color-chapter:   #af4d0d;   /* orange → 警告/次要操作 */
-    --color-page:      #206ea7;   /* blue   → 信息/分类A */
-    --color-draft:     #7e50b1;   /* purple → 草稿/分类B */
-    --color-bookshelf: #a94747;   /* red    → 危险/删除 */
+    --color-book:      #077b70;
+    --color-chapter:   #af4d0d;
+    --color-page:      #206ea7;
+    --color-draft:     #7e50b1;
+    --color-bookshelf: #a94747;
 
-    /* 状态色 */
     --color-positive: #0f7d15;
     --color-negative: #ab0f0e;
     --color-warning:  #cf4d03;
     --color-info:     #0288D1;
 
-    /* 背景与文字 */
     --bg-body: #f5f5f5;
     --bg-card: #ffffff;
     --text-primary: #444;
     --text-muted: #777;
     --text-heading: #222;
 
-    /* 字体 */
     --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Oxygen, Ubuntu,
                  Roboto, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
     --font-code: "Lucida Console", "DejaVu Sans Mono", "Ubuntu Mono", Monaco, monospace;
 
-    /* 圆角 */
     --radius-s: 3px;
     --radius-m: 4px;
     --radius-l: 8px;
 
-    /* 阴影 */
     --shadow-card: 0 1px 6px -1px rgba(0,0,0,0.1);
     --shadow-sub:  0 1px 3px 0 rgba(0,0,0,0.1);
   }
@@ -58,12 +51,8 @@
     padding: 20px;
   }
 
-  .container {
-    max-width: 1300px;
-    margin: 0 auto;
-  }
+  .container { max-width: 1300px; margin: 0 auto; }
 
-  /* 页面标题 */
   header {
     margin-bottom: 24px;
     padding: 18px 22px;
@@ -83,7 +72,6 @@
     font-size: 0.85rem;
   }
 
-  /* 面板 */
   .panel {
     background: var(--bg-card);
     padding: 20px;
@@ -116,16 +104,14 @@
     background: var(--color-primary);
   }
 
-  /* 表单 */
   .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px 24px;
     margin-bottom: 14px;
   }
-  .form-row.single {
-    grid-template-columns: 1fr;
-  }
+  .form-row.single { grid-template-columns: 1fr; }
+
   .form-group {
     display: flex;
     flex-direction: column;
@@ -150,7 +136,6 @@
     margin-left: 4px;
   }
 
-  /* 输入框 */
   select, input[type="text"] {
     padding: 7px 12px;
     border: 1px solid #ddd;
@@ -172,13 +157,9 @@
     margin-top: 6px;
     display: none;
   }
-  .other-input.visible {
-    display: block;
-  }
+  .other-input.visible { display: block; }
 
-  .conditional {
-    display: none;
-  }
+  .conditional { display: none; }
   .conditional.visible {
     display: block;
     animation: fadeIn 200ms ease-out;
@@ -194,7 +175,6 @@
     gap: 20px;
   }
 
-  /* 子面板 */
   .sub-panel {
     background: #fafafa;
     border: 1px solid #eee;
@@ -202,9 +182,7 @@
     border-radius: var(--radius-s);
     padding: 16px 18px;
   }
-  .sub-panel.purple {
-    border-left-color: var(--color-draft);
-  }
+  .sub-panel.purple { border-left-color: var(--color-draft); }
   .sub-panel-title {
     font-size: 0.9rem;
     font-weight: 600;
@@ -224,7 +202,24 @@
   .badge-teal   { background: var(--color-book); }
   .badge-purple { background: var(--color-draft); }
 
-  /* 按钮 */
+  /* 提示条 */
+  .design-hint {
+    margin-top: 8px;
+    padding: 6px 10px;
+    background: var(--color-primary-light);
+    border-left: 3px solid var(--color-primary);
+    border-radius: var(--radius-s);
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    display: none;
+  }
+  .design-hint.visible { display: block; }
+  .design-hint .hint-label {
+    color: var(--color-primary);
+    font-weight: 600;
+    margin-right: 4px;
+  }
+
   .actions {
     display: flex;
     justify-content: center;
@@ -249,9 +244,7 @@
     vertical-align: top;
     font-family: var(--font-body);
   }
-  button:hover {
-    filter: brightness(1.1);
-  }
+  button:hover { filter: brightness(1.1); }
   button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -284,13 +277,8 @@
     border-color: var(--color-positive);
   }
 
-  /* 输出面板 */
-  .output-panel {
-    display: none;
-  }
-  .output-panel.visible {
-    display: block;
-  }
+  .output-panel { display: none; }
+  .output-panel.visible { display: block; }
   .output-header {
     display: flex;
     justify-content: space-between;
@@ -311,7 +299,6 @@
     border: 1px solid #1e1e1e;
   }
 
-  /* Toast */
   .toast {
     position: fixed;
     top: 24px;
@@ -346,42 +333,88 @@
     <p>Clinical Pharmacokinetic &amp; Pharmacodynamic Sampling Configuration</p>
   </header>
 
-  <!-- 上Panel：研究目的 -->
+  <!-- S Panel：研究设计 -->
   <section class="panel panel-info">
     <div class="panel-title">
-      <span class="badge">A</span>
-      研究目的 Objective
+      <span class="badge">S</span>
+      研究设计 Design
     </div>
-    <div class="form-row single">
-      <div class="form-group">
-        <label>研究目的 <span class="param-name">(Objective)</span></label>
-        <select id="objective">
-          <option value="">-- 请选择 --</option>
-          <option value="PK Characterization">PK表征（PK Characterization）</option>
-          <option value="PD Characterization">PD表征（PD Characterization）</option>
-          <option value="Biomarker">生物标记物（Biomarker）</option>
-          <option value="Food Effect">食物影响（Food Effect）</option>
-          <option value="Drug-Drug Interaction">药物相互作用（Drug-Drug Interaction）</option>
-          <option value="QT Prolongation">QT延长（QT Prolongation）</option>
-          <option value="Bioequivalence">生物等效性（Bioequivalence）</option>
-          <option value="Dose-Response">剂量-效应（Dose-Response）</option>
-          <option value="Population PK">群体PK（Population PK）</option>
-          <option value="Drug Monitor">治疗药物监测（Drug Monitor）</option>
-          <option value="Other">其他（Other）</option>
-        </select>
-        <input type="text" id="objectiveOther" class="other-input" placeholder="请输入其他研究目的描述">
+    <div class="two-col">
+      <!-- 左侧：研究目的 -->
+      <div class="sub-panel">
+        <div class="sub-panel-title">
+          <span class="badge badge-teal">O</span>
+          研究目的
+        </div>
+        <div class="form-group">
+          <label>研究目的 <span class="param-name">(Objective)</span></label>
+          <select id="objective">
+            <option value="">-- 请选择 --</option>
+            <option value="PK Characterization">PK表征（PK Characterization）</option>
+            <option value="PD Characterization">PD表征（PD Characterization）</option>
+            <option value="Biomarker">生物标记物（Biomarker）</option>
+            <option value="Food Effect">食物影响（Food Effect）</option>
+            <option value="Drug-Drug Interaction">药物相互作用（Drug-Drug Interaction）</option>
+            <option value="QT Prolongation">QT延长（QT Prolongation）</option>
+            <option value="Bioequivalence">生物等效性（Bioequivalence）</option>
+            <option value="Dose-Response">剂量-效应（Dose-Response）</option>
+            <option value="Population PK">群体PK（Population PK）</option>
+            <option value="Drug Monitor">治疗药物监测（Drug Monitor）</option>
+            <option value="Other">其他（Other）</option>
+          </select>
+          <input type="text" id="objectiveOther" class="other-input" placeholder="请输入其他研究目的描述">
+        </div>
+      </div>
+
+      <!-- 右侧：研究设计 + 给药频率 -->
+      <div class="sub-panel purple">
+        <div class="sub-panel-title">
+          <span class="badge badge-purple">D</span>
+          研究设计与频率
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label>研究设计 <span class="param-name">(Design)</span></label>
+          <select id="design">
+            <option value="">-- 请选择 --</option>
+            <option value="SAD">单剂量递增（SAD）</option>
+            <option value="MAD">多剂量递增（MAD）</option>
+            <option value="Crossover">交叉给药（Crossover）</option>
+            <option value="Parallel">平行给药（Parallel）</option>
+            <option value="Other">其他（Other）</option>
+          </select>
+          <input type="text" id="designOther" class="other-input" placeholder="请输入其他研究设计描述">
+          <div class="design-hint" id="designHint">
+            <span class="hint-label">推荐：</span>
+            <span id="designHintText"></span>
+          </div>
+        </div>
+
+        <div class="form-group conditional" id="frequencyGroup">
+          <label>给药频率 <span class="param-name">(Frequency)</span></label>
+          <select id="frequency">
+            <option value="">-- 请选择 --</option>
+            <option value="QD">每日一次（QD）</option>
+            <option value="BID">每日二次（BID）</option>
+            <option value="TID">每日三次（TID）</option>
+            <option value="QW">每周一次（QW）</option>
+            <option value="Q2W">每两周一次（Q2W）</option>
+            <option value="Q3W">每三周一次（Q3W）</option>
+            <option value="Other">其他（Other）</option>
+          </select>
+          <input type="text" id="frequencyOther" class="other-input" placeholder="例如：负荷剂量 + 维持剂量">
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- 中Panel：核心参数 -->
+  <!-- B Panel：核心参数 -->
   <section class="panel">
     <div class="panel-title">
       <span class="badge">B</span>
       核心参数 Core Parameters
     </div>
     <div class="two-col">
-      <!-- 中左Panel -->
       <div class="sub-panel">
         <div class="sub-panel-title">
           <span class="badge badge-teal">T</span>
@@ -436,40 +469,12 @@
           <input type="text" id="routeOther" class="other-input" placeholder="请输入其他给药途径描述">
         </div>
 
-        <div class="form-group conditional" id="infusionGroup" style="margin-bottom:14px;">
+        <div class="form-group conditional" id="infusionGroup">
           <label>静脉输注方式 <span class="hint">（例如静脉输注时间）</span></label>
           <input type="text" id="infusionMethod" placeholder="例如：输注时间 2h">
         </div>
-
-        <div class="form-group" style="margin-bottom:14px;">
-          <label>给药模式 <span class="param-name">(Modality)</span></label>
-          <select id="modality">
-            <option value="">-- 请选择 --</option>
-            <option value="SAD">单次给药（SAD）</option>
-            <option value="MAD">多次给药（MAD）</option>
-            <option value="Crossover">交叉给药（Crossover）</option>
-            <option value="Other">其他（Other）</option>
-          </select>
-          <input type="text" id="modalityOther" class="other-input" placeholder="请输入其他给药模式描述">
-        </div>
-
-        <div class="form-group conditional" id="frequencyGroup">
-          <label>给药频率 <span class="param-name">(Frequency)</span></label>
-          <select id="frequency">
-            <option value="">-- 请选择 --</option>
-            <option value="QD">每日一次（QD）</option>
-            <option value="BID">每日二次（BID）</option>
-            <option value="TID">每日三次（TID）</option>
-            <option value="QW">每周一次（QW）</option>
-            <option value="Q2W">每两周一次（Q2W）</option>
-            <option value="Q3W">每三周一次（Q3W）</option>
-            <option value="Other">其他（Other）</option>
-          </select>
-          <input type="text" id="frequencyOther" class="other-input" placeholder="例如：负荷剂量 + 维持剂量">
-        </div>
       </div>
 
-      <!-- 中右Panel：先验信息 -->
       <div class="sub-panel purple">
         <div class="sub-panel-title">
           <span class="badge badge-purple">R</span>
@@ -489,7 +494,7 @@
     </div>
   </section>
 
-  <!-- 下Panel：可选约束条件 -->
+  <!-- C Panel：可选约束条件 -->
   <section class="panel panel-warning">
     <div class="panel-title">
       <span class="badge" style="background: var(--color-chapter);">C</span>
@@ -519,15 +524,20 @@
         <input type="text" id="feasibility" placeholder="例如：夜间采样、门诊时间、受试者留院时间、是否住院采样、是否有夜间值班">
       </div>
     </div>
+
+    <div class="form-row single">
+      <div class="form-group">
+        <label>其他 <span class="param-name">(Other)</span></label>
+        <input type="text" id="otherConstraints" placeholder="请输入其他约束条件或补充说明">
+      </div>
+    </div>
   </section>
 
-  <!-- 操作按钮 -->
   <div class="actions">
     <button class="btn-secondary" id="resetBtn">重置</button>
     <button class="btn-primary" id="submitBtn">提交</button>
   </div>
 
-  <!-- 输出Panel -->
   <section class="panel panel-success output-panel" id="outputPanel">
     <div class="output-header">
       <div class="panel-title" style="margin-bottom:0; border-bottom:none; padding-bottom:0;">
@@ -543,16 +553,41 @@
 <div class="toast" id="toast">已复制到剪贴板</div>
 
 <script>
-  // 条件显示逻辑
+  // Objective → 推荐 Design 映射（基于临床研究经验）
+  const OBJECTIVE_DESIGN_MAP = {
+    'PK Characterization':       { designs: ['SAD', 'MAD', 'Crossover', 'Parallel'], hint: 'PK表征通常采用单/多剂量递增或交叉/平行设计' },
+    'PD Characterization':       { designs: ['SAD', 'MAD', 'Crossover', 'Parallel'], hint: 'PD表征通常采用单/多剂量递增或交叉/平行设计' },
+    'Biomarker':                 { designs: ['SAD', 'MAD', 'Crossover', 'Parallel'], hint: '生物标记物研究通常采用单/多剂量递增或交叉/平行设计' },
+    'Food Effect':               { designs: ['Crossover', 'Parallel'], hint: '食物影响研究通常采用交叉设计（首选）或平行设计' },
+    'Drug-Drug Interaction':     { designs: ['Crossover', 'Parallel'], hint: '药物相互作用研究通常采用交叉设计或平行设计' },
+    'QT Prolongation':           { designs: ['Crossover', 'Parallel'], hint: 'QT延长研究（如TQT）通常采用交叉设计或平行设计' },
+    'Bioequivalence':            { designs: ['Crossover', 'Parallel'], hint: '生物等效性研究通常采用交叉设计（首选）或平行设计' },
+    'Dose-Response':             { designs: ['Parallel', 'MAD'], hint: '剂量-效应研究通常采用平行设计（不同剂量组）或多剂量递增' },
+    'Population PK':             { designs: ['SAD', 'MAD', 'Crossover', 'Parallel'], hint: '群体PK研究可整合多种设计数据' },
+    'Drug Monitor':              { designs: ['SAD', 'MAD', 'Parallel'], hint: '治疗药物监测通常采用单/多剂量或平行设计' },
+    'Other':                     { designs: ['SAD', 'MAD', 'Crossover', 'Parallel'], hint: '请根据研究需求选择合适的研究设计' }
+  };
+
+  // Design 选项的中文标签（用于提示显示）
+  const DESIGN_LABELS = {
+    'SAD': '单剂量递增',
+    'MAD': '多剂量递增',
+    'Crossover': '交叉给药',
+    'Parallel': '平行给药',
+    'Other': '其他'
+  };
+
   const objective = document.getElementById('objective');
   const objectiveOther = document.getElementById('objectiveOther');
+  const design = document.getElementById('design');
+  const designOther = document.getElementById('designOther');
+  const designHint = document.getElementById('designHint');
+  const designHintText = document.getElementById('designHintText');
   const moleculeType = document.getElementById('moleculeType');
   const moleculeTypeOther = document.getElementById('moleculeTypeOther');
   const route = document.getElementById('route');
   const routeOther = document.getElementById('routeOther');
   const infusionGroup = document.getElementById('infusionGroup');
-  const modality = document.getElementById('modality');
-  const modalityOther = document.getElementById('modalityOther');
   const frequencyGroup = document.getElementById('frequencyGroup');
   const frequency = document.getElementById('frequency');
   const frequencyOther = document.getElementById('frequencyOther');
@@ -568,8 +603,76 @@
     }
   }
 
+  // 根据 Objective 更新 Design 的可用选项和推荐提示
+  function updateDesignByObjective() {
+    const objVal = objective.value;
+    const mapping = OBJECTIVE_DESIGN_MAP[objVal];
+
+    // 保存当前 Design 选项
+    const currentDesign = design.value;
+
+    // 重建 Design 下拉选项
+    design.innerHTML = '<option value="">-- 请选择 --</option>';
+
+    if (mapping) {
+      mapping.designs.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = getDesignText(d);
+        design.appendChild(opt);
+      });
+      // 始终追加"其他"选项（如果不在列表中）
+      if (!mapping.designs.includes('Other')) {
+        const opt = document.createElement('option');
+        opt.value = 'Other';
+        opt.textContent = '其他（Other）';
+        design.appendChild(opt);
+      }
+
+      // 显示推荐提示
+      designHintText.textContent = mapping.hint;
+      designHint.classList.add('visible');
+
+      // 如果当前选中的 Design 不在新列表中，清空
+      if (currentDesign && !mapping.designs.includes(currentDesign) && currentDesign !== 'Other') {
+        design.value = '';
+        designOther.value = '';
+        designOther.classList.remove('visible');
+        frequencyGroup.classList.remove('visible');
+        frequency.value = '';
+        frequencyOther.value = '';
+        frequencyOther.classList.remove('visible');
+      } else if (currentDesign) {
+        design.value = currentDesign;
+      }
+    } else {
+      // 未选择 Objective，恢复全部选项
+      ['SAD', 'MAD', 'Crossover', 'Parallel', 'Other'].forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = getDesignText(d);
+        design.appendChild(opt);
+      });
+      designHint.classList.remove('visible');
+    }
+  }
+
+  function getDesignText(value) {
+    const map = {
+      'SAD': '单剂量递增（SAD）',
+      'MAD': '多剂量递增（MAD）',
+      'Crossover': '交叉给药（Crossover）',
+      'Parallel': '平行给药（Parallel）',
+      'Other': '其他（Other）'
+    };
+    return map[value] || value;
+  }
+
   objective.addEventListener('change', () => {
     toggleOther(objective, objectiveOther);
+    updateDesignByObjective();
+
+    // 食物影响字段显示逻辑
     if (objective.value && objective.value !== 'Food Effect') {
       foodEffectGroup.classList.add('visible');
     } else {
@@ -596,9 +699,9 @@
     }
   });
 
-  modality.addEventListener('change', () => {
-    toggleOther(modality, modalityOther);
-    if (modality.value === 'MAD') {
+  design.addEventListener('change', () => {
+    toggleOther(design, designOther);
+    if (design.value === 'MAD') {
       frequencyGroup.classList.add('visible');
     } else {
       frequencyGroup.classList.remove('visible');
@@ -617,7 +720,10 @@
     document.querySelectorAll('input[type="text"]').forEach(i => i.value = '');
     document.querySelectorAll('.other-input').forEach(i => i.classList.remove('visible'));
     document.querySelectorAll('.conditional').forEach(c => c.classList.remove('visible'));
+    designHint.classList.remove('visible');
     document.getElementById('outputPanel').classList.remove('visible');
+    // 恢复 Design 全部选项
+    updateDesignByObjective();
   });
 
   // 提交
@@ -628,6 +734,20 @@
       result.Objective = objective.value === 'Other' ? objectiveOther.value.trim() : objective.value;
       if (objective.value === 'Other' && objectiveOther.value.trim()) {
         result.ObjectiveOther = objectiveOther.value.trim();
+      }
+    }
+
+    if (design.value) {
+      result.Design = design.value === 'Other' ? designOther.value.trim() : design.value;
+      if (design.value === 'Other' && designOther.value.trim()) {
+        result.DesignOther = designOther.value.trim();
+      }
+    }
+
+    if (frequency.value) {
+      result.Frequency = frequency.value === 'Other' ? frequencyOther.value.trim() : frequency.value;
+      if (frequency.value === 'Other' && frequencyOther.value.trim()) {
+        result.FrequencyOther = frequencyOther.value.trim();
       }
     }
 
@@ -648,20 +768,6 @@
     const infusionMethod = document.getElementById('infusionMethod').value.trim();
     if (infusionMethod) result.InfusionMethod = infusionMethod;
 
-    if (modality.value) {
-      result.Modality = modality.value === 'Other' ? modalityOther.value.trim() : modality.value;
-      if (modality.value === 'Other' && modalityOther.value.trim()) {
-        result.ModalityOther = modalityOther.value.trim();
-      }
-    }
-
-    if (frequency.value) {
-      result.Frequency = frequency.value === 'Other' ? frequencyOther.value.trim() : frequency.value;
-      if (frequency.value === 'Other' && frequencyOther.value.trim()) {
-        result.FrequencyOther = frequencyOther.value.trim();
-      }
-    }
-
     const thalf = document.getElementById('thalf').value.trim();
     if (thalf) result.THALF = thalf;
 
@@ -679,6 +785,9 @@
 
     const feasibility = document.getElementById('feasibility').value.trim();
     if (feasibility) result.Feasibility = feasibility;
+
+    const otherConstraints = document.getElementById('otherConstraints').value.trim();
+    if (otherConstraints) result.Other = otherConstraints;
 
     const jsonStr = JSON.stringify(result, null, 2);
     document.getElementById('jsonOutput').textContent = jsonStr;
