@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>临床试验中央随机化药物分发模拟</title>
+<style>
+:root{
+  /* macrolib.com / BookStack 设计令牌 */
+  --color-primary:#206ea7;
+  --color-primary-light:rgba(32,110,167,0.15);
+  --color-book:#077b70;      /* teal：成功/组别T */
+  --color-chapter:#af4d0d;   /* orange：警告/组别R */
+  --color-page:#206ea7;
+  --color-draft:#7e50b1;
+  --color-bookshelf:#a94747;
+  --color-positive:#0f7d15;
+  --color-negative:#ab0f0e;
+  --color-warning:#cf4d03;
+  --color-info:#0288D1;
+  --bg-body:#f5f5f5;
+  --bg-card:#ffffff;
+  --text-primary:#444;
+  --text-muted:#777;
+  --text-heading:#222;
+  --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI",Oxygen,Ubuntu,Roboto,Cantarell,"Fira Sans","Droid Sans","Helvetica Neue","Microsoft YaHei",sans-serif;
+  --radius-s:3px; --radius-m:4px; --radius-l:8px;
+  --shadow-card:0 1px 6px -1px rgba(0,0,0,0.1);
+  --shadow-sub:0 1px 3px 0 rgba(0,0,0,0.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg-body);color:var(--text-primary);font-family:var(--font-body);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;padding:20px}
+header{background:var(--bg-card);box-shadow:var(--shadow-card);border-left:4px solid var(--color-primary);border-radius:var(--radius-s);padding:20px 24px;margin-bottom:24px}
+header h1{color:var(--text-heading);font-size:1.8rem;font-weight:600;margin-bottom:8px}
+header p{color:var(--text-muted);font-size:.85rem}
+.wrap{max-width:1300px;margin:0 auto}
+.panel{background:var(--bg-card);border-radius:var(--radius-s);box-shadow:var(--shadow-card);border-left:4px solid var(--color-primary);padding:20px;margin-bottom:24px}
+.panel.panel-book{border-left-color:var(--color-book)}
+.panel.panel-draft{border-left-color:var(--color-draft)}
+.panel.panel-chapter{border-left-color:var(--color-chapter)}
+.panel h2{font-size:1rem;color:var(--text-heading);font-weight:600;margin-bottom:16px}
+.panel h3{font-size:.9rem;color:var(--color-primary);font-weight:600;margin:4px 0 10px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px 16px}
+.field label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px}
+.field input,.field select{width:100%;padding:7px 12px;border:1px solid #ddd;border-radius:var(--radius-m);font-size:.9rem;color:var(--text-primary);background:#fff;font-family:var(--font-body);transition:border-color ease-in-out 120ms,box-shadow ease-in-out 120ms}
+.field input:focus,.field select:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 2px var(--color-primary-light)}
+.hint{font-size:11px;color:var(--text-muted);margin-top:3px}
+.groupbox{border:1px dashed #ddd;border-radius:var(--radius-m);padding:12px;margin-bottom:14px;background:#fafafa}
+/* 药物管理：T/R 分组子面板 */
+.armcols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px}
+.armcol{border-radius:var(--radius-m);padding:14px;border:1px solid #e5e5e5}
+.armcol.t{background:rgba(7,123,112,0.06);border-left:4px solid var(--color-book)}
+.armcol.r{background:rgba(175,77,13,0.06);border-left:4px solid var(--color-chapter)}
+.armcol h4{font-size:.9rem;margin-bottom:10px;font-weight:600}
+.armcol.t h4{color:var(--color-book)}
+.armcol.r h4{color:var(--color-chapter)}
+/* Visit 进度 */
+.vprog{margin-top:10px;border-top:1px dashed #eee;padding-top:8px}
+.vprow{display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:4px}
+.vprow b{color:var(--color-primary);font-variant-numeric:tabular-nums}
+.vpbar{height:8px;background:#eee;border-radius:var(--radius-s);overflow:hidden}
+.vpbar i{display:block;height:100%;background:var(--color-book);border-radius:var(--radius-s);width:0;transition:width .5s ease}
+.vpcount{font-size:11px;color:var(--text-muted);margin-top:4px}
+.btnrow{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+button{text-decoration:none;font-size:.85rem;line-height:1.4em;padding:7.8px 16px;margin:6px 0;display:inline-block;font-weight:400;outline:0;border-radius:var(--radius-m);cursor:pointer;transition:background-color ease-in-out 120ms,filter ease-in-out 120ms,box-shadow ease-in-out 120ms;border:1px solid transparent;vertical-align:top;font-family:var(--font-body)}
+button:hover{filter:brightness(1.1)}
+button:disabled{opacity:.5;cursor:not-allowed;filter:none}
+.btn-primary{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.btn-ghost{background:#fff;color:var(--color-primary);border-color:var(--color-primary)}
+.banner{padding:12px 16px;border-radius:var(--radius-s);font-size:.85rem;display:none;margin-bottom:24px;border-left:4px solid var(--color-info);background:var(--bg-card);box-shadow:var(--shadow-card);color:var(--text-primary)}
+.banner.show{display:block}
+.banner.info{border-left-color:var(--color-info)}
+.banner.success{border-left-color:var(--color-positive);color:var(--color-positive);font-weight:600}
+.banner.error{border-left-color:var(--color-negative);color:var(--color-negative);font-weight:600}
+.controls{position:sticky;top:8px;z-index:20;background:var(--bg-card);box-shadow:var(--shadow-card);border-left:4px solid var(--color-page);border-radius:var(--radius-s);padding:10px 14px;margin-bottom:24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.controls .daylabel{font-weight:700;color:var(--text-heading);min-width:130px;font-variant-numeric:tabular-nums}
+.ctrl-btn{background:#fff;color:var(--color-primary);border-color:var(--color-primary);padding:7.8px 13px;font-size:.8rem;margin:0}
+.ctrl-btn.play{background:var(--color-primary);color:#fff;min-width:74px}
+.controls select{padding:7px 10px;border:1px solid #ddd;border-radius:var(--radius-m);font-size:.8rem;background:#fff;font-family:var(--font-body);width:auto}
+.controls input[type=range]{flex:1;min-width:140px;accent-color:var(--color-primary)}
+.hidden{display:none !important}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}
+.stat{background:var(--bg-card);border:1px solid #eee;border-radius:var(--radius-m);padding:14px;box-shadow:var(--shadow-sub);display:flex;flex-direction:column;align-items:center;text-align:center}
+.stat .k{font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}
+.stat .v{font-size:1.5rem;font-weight:700;color:var(--color-primary);margin:4px 0;font-variant-numeric:tabular-nums}
+.stat .s{font-size:11px;color:var(--text-muted)}
+.mini{height:8px;background:#eee;border-radius:var(--radius-s);overflow:hidden;margin-top:8px;width:100%}
+.mini i{display:block;height:100%;border-radius:var(--radius-s);background:var(--color-book);width:0;transition:width .5s ease}
+
+/* ---------- Depot 视觉 ---------- */
+.depot-body{display:flex;gap:20px;align-items:stretch;flex-wrap:wrap}
+.depot-house{flex:none;width:120px;border:1px solid #eee;border-radius:var(--radius-l);background:var(--color-primary-light);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px 8px;box-shadow:var(--shadow-sub)}
+.depot-ico{font-size:40px;line-height:1;animation:houseFloat 3s ease-in-out infinite}
+@keyframes houseFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.depot-house.flash .depot-ico{animation:houseShake .55s}
+@keyframes houseShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px) rotate(-3deg)}60%{transform:translateX(4px) rotate(3deg)}}
+.dlabel{font-size:12px;font-weight:600;color:var(--text-heading)}
+.gauges{display:flex;gap:20px;flex:none}
+.gauge{width:96px;text-align:center}
+.gname{font-size:13px;font-weight:600;margin-bottom:5px}
+.gname.t{color:var(--color-book)} .gname.r{color:var(--color-chapter)}
+.tank{position:relative;height:112px;background:#eee;border:1px solid #ddd;border-radius:var(--radius-l);overflow:hidden}
+.fillv{position:absolute;left:0;right:0;bottom:0;transition:height .35s ease}
+.fillv.t{background:var(--color-book)}
+.fillv.r{background:var(--color-chapter)}
+.gnum{font-size:1.4rem;font-weight:700;color:var(--text-heading);margin-top:6px;font-variant-numeric:tabular-nums}
+.gsub{font-size:11px;color:var(--text-muted)}
+.gsub b{color:var(--color-primary)}
+.depot-note{flex:1;min-width:220px;border:1px dashed #ddd;border-radius:var(--radius-m);padding:12px 14px;background:#fafafa}
+.depot-note ul{list-style:none;font-size:12px;color:var(--text-muted)}
+.depot-note li{padding:2px 0}
+.lane{margin-top:16px;border:1px dashed #ddd;border-radius:var(--radius-m);padding:12px;background:#fafafa}
+.lane h3{margin:0 0 8px}
+#laneChips{min-height:30px}
+.lanenone{color:var(--text-muted);font-size:12px}
+.truckchip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #ddd;border-radius:var(--radius-s);padding:4px 11px;font-size:12px;margin:3px 8px 3px 0;box-shadow:var(--shadow-sub)}
+.truckchip.new{animation:chipIn .5s ease}
+@keyframes chipIn{from{transform:translateX(-16px);opacity:0}to{transform:none;opacity:1}}
+.tico{display:inline-block;animation:truckRoll 1s ease-in-out infinite}
+@keyframes truckRoll{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+.tc-t{color:var(--color-book)} .tc-r{color:var(--color-chapter)}
+.tbar{width:46px;height:5px;background:#eee;border-radius:var(--radius-s);overflow:hidden}
+.tbar i{display:block;height:100%;background:var(--color-primary);border-radius:var(--radius-s);transition:width .3s}
+
+/* ---------- Sites 视觉 ---------- */
+#sitesWrap{position:relative}
+#fxLayer{position:absolute;inset:0;pointer-events:none;z-index:6}
+.sites{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.site{position:relative;border:1px solid #eee;border-radius:var(--radius-l);padding:14px;background:var(--bg-card);box-shadow:var(--shadow-sub);transition:border-color 120ms ease-in-out,background 120ms ease-in-out,box-shadow 120ms ease-in-out}
+.site:hover{box-shadow:0 1px 6px -1px rgba(0,0,0,0.15);transform:translateY(-1px)}
+.site.warn{border-color:var(--color-warning);background:#fff8f2}
+.site.out{border-color:var(--color-negative);background:#fdf3f3}
+.site .shead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.site .shead b{color:var(--text-heading)}
+.site-ico{font-size:18px;margin-right:5px;vertical-align:-2px}
+.badge{padding:2px 8px;border-radius:var(--radius-s);font-size:.75rem;font-weight:600;color:#fff;display:inline-block;white-space:nowrap}
+.badge.okb{background:var(--color-info)}
+.badge.warnb{background:var(--color-warning)}
+.badge.outb{background:var(--color-negative)}
+.site .meta{font-size:12px;color:var(--text-muted);margin-bottom:2px}
+.drugrow{display:flex;align-items:center;gap:8px;margin:8px 0 2px}
+.dname{width:44px;flex:none;font-weight:600;font-size:12px}
+.dname.t{color:var(--color-book)} .dname.r{color:var(--color-chapter)}
+.pills{display:flex;flex-wrap:wrap;gap:3px;flex:1;min-height:12px}
+.pill{width:9px;height:9px;border-radius:50%;transition:background .3s}
+.pill.full.t{background:var(--color-book)}
+.pill.full.r{background:var(--color-chapter)}
+.pill.empty{background:#e8e8e8}
+.dnum{width:62px;flex:none;text-align:right;font-weight:700;font-size:15px;color:var(--text-heading);font-variant-numeric:tabular-nums}
+.dnum em{display:block;font-style:normal;font-weight:400;font-size:10px;color:var(--text-muted)}
+.sfoot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;min-height:18px}
+.trig{color:var(--color-chapter);font-weight:600}
+.intr{color:var(--color-book);font-weight:600;white-space:nowrap}
+.sites .placeholder{grid-column:1/-1;color:var(--text-muted);text-align:center;padding:26px 0}
+
+/* 卡片事件动画（语义色脉冲） */
+.site.anim-dose{animation:dosePulse .65s ease-out}
+@keyframes dosePulse{0%{box-shadow:0 0 0 0 rgba(32,110,167,.45)}100%{box-shadow:0 0 0 13px rgba(32,110,167,0)}}
+.site.anim-arrive{animation:arrivePulse .75s ease-out}
+@keyframes arrivePulse{0%{box-shadow:0 0 0 0 rgba(7,123,112,.5)}100%{box-shadow:0 0 0 14px rgba(7,123,112,0)}}
+.site.anim-trig{animation:trigPulse .75s ease-out}
+@keyframes trigPulse{0%{box-shadow:0 0 0 0 rgba(207,77,3,.5)}100%{box-shadow:0 0 0 14px rgba(207,77,3,0)}}
+.site.anim-fail{animation:failPulse .9s ease-out}
+@keyframes failPulse{0%{box-shadow:0 0 0 0 rgba(171,15,14,.55)}100%{box-shadow:0 0 0 16px rgba(171,15,14,0)}}
+.floatfx{position:absolute;transform:translateX(-50%);font-size:13px;font-weight:600;white-space:nowrap;animation:floatUp .9s ease-out forwards;text-shadow:0 1px 2px rgba(255,255,255,.9)}
+.floatfx.minus{color:var(--color-book)}
+.floatfx.plus{color:var(--color-positive)}
+.floatfx.alert{color:var(--color-warning)}
+.floatfx.failfx{color:var(--color-negative);font-size:15px}
+@keyframes floatUp{0%{opacity:0;margin-top:8px}18%{opacity:1}100%{opacity:0;margin-top:-30px}}
+
+/* ---------- 日志 ---------- */
+.logbox{max-height:330px;overflow-y:auto;font-size:.85rem;padding-right:6px}
+.dayhead{font-weight:600;color:var(--text-heading);margin-top:8px;font-size:.8rem;border-bottom:1px solid #eee;padding-bottom:2px}
+.ev{padding:2px 0;border-bottom:1px dashed #eee;line-height:1.5}
+.ev.rand{color:var(--color-info)}
+.ev.dose{color:var(--text-primary)}
+.ev.trig{color:var(--color-warning);font-weight:600}
+.ev.arrive{color:var(--color-book)}
+.ev.warn{color:var(--color-warning)}
+.ev.fail{color:var(--color-negative);font-weight:700}
+.ev.info{color:var(--text-muted)}
+footer{max-width:1300px;margin:0 auto;padding:0 4px;color:var(--text-muted);font-size:12px}
+@media (max-width:640px){
+  header{padding:16px}
+  .depot-body{flex-direction:column}
+  .depot-house{width:100%;flex-direction:row}
+  .armcols{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap" style="padding:0">
+    <h1>临床试验中央随机化药物分发模拟</h1>
+    <p>按天动态演示：初始分发 → 随机化入组 → 按 Visit 发药 → 警戒线触发补药，直到全部受试者完成发药或发生缺药终止</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ================= 输入 Panel ================= -->
+  <section class="panel" id="inputPanel">
+    <h2>输入参数</h2>
+
+    <div class="groupbox">
+      <h3>试验设计</h3>
+      <div class="fields">
+        <div class="field"><label for="inN">样本量 N（例）</label><input type="number" id="inN" min="1" max="5000" step="1" value="100"></div>
+        <div class="field"><label for="inRatio">随机化比例（T : R）</label><input type="text" id="inRatio" value="1:1"><div class="hint">如 1:1、2:1；只填 1 等同 1:1</div></div>
+        <div class="field"><label for="inVisits">药物分发时间 Visit（天）</label><input type="text" id="inVisits" value="0,14,28,42"><div class="hint">相对随机化日的偏移，逗号分隔，默认 4 次</div></div>
+      </div>
+    </div>
+
+    <div class="groupbox">
+      <h3>运营</h3>
+      <div class="fields">
+        <div class="field"><label for="inAccrual">入组期 Accrual Period（天）</label><input type="number" id="inAccrual" min="1" max="3650" step="1" value="180"></div>
+        <div class="field"><label for="inSites">研究中心数 Number of Sites</label><input type="number" id="inSites" min="1" max="50" step="1" value="5"></div>
+        <div class="field"><label for="inDist">受试者分布</label>
+          <select id="inDist">
+            <option value="uniform" selected>均匀分布</option>
+            <option value="concentrated">集中分布</option>
+          </select>
+          <div class="hint">集中分布：10% 中心承接 40% 受试者，30% 承接 40%，其余 40% 承接 20%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="groupbox">
+      <h3>药物管理</h3>
+      <div class="fields" style="margin-bottom:10px">
+        <div class="field"><label for="inMethod">中心 Site · 药物补充方法（两药统一）</label>
+          <select id="inMethod">
+            <option value="fixed" selected>固定补充</option>
+            <option value="demand">按需补充</option>
+          </select>
+          <div class="hint">按需补充：补足至初始分发量；单一组补货时自动配 1 单位另一组以保护盲态</div>
+        </div>
+        <div class="field"><label for="inTransit">物流天数（Depot → Site，两药统一）</label><input type="number" id="inTransit" min="0" max="60" step="1" value="3"></div>
+      </div>
+      <div class="armcols">
+        <div class="armcol t">
+          <h4>💊 T药参数</h4>
+          <div class="fields">
+            <div class="field"><label for="inDepotT">中央仓库 Depot · T药储备量</label><input type="number" id="inDepotT" min="0" max="100000" step="1" value="600"></div>
+            <div class="field"><label for="inInitT">中心 Site · T药初始分发量（各中心统一）</label><input type="number" id="inInitT" min="0" max="10000" step="1" value="50"></div>
+            <div class="field"><label for="inAlertT">中心 Site · T药警戒线（各中心统一）</label><input type="number" id="inAlertT" min="0" max="10000" step="1" value="10"></div>
+            <div class="field" id="fFixedT"><label for="inFixedT">固定补充 · T药补充量</label><input type="number" id="inFixedT" min="0" max="10000" step="1" value="30"></div>
+          </div>
+        </div>
+        <div class="armcol r">
+          <h4>💊 R药参数</h4>
+          <div class="fields">
+            <div class="field"><label for="inDepotR">中央仓库 Depot · R药储备量</label><input type="number" id="inDepotR" min="0" max="100000" step="1" value="600"></div>
+            <div class="field"><label for="inInitR">中心 Site · R药初始分发量（各中心统一）</label><input type="number" id="inInitR" min="0" max="10000" step="1" value="50"></div>
+            <div class="field"><label for="inAlertR">中心 Site · R药警戒线（各中心统一）</label><input type="number" id="inAlertR" min="0" max="10000" step="1" value="10"></div>
+            <div class="field" id="fFixedR"><label for="inFixedR">固定补充 · R药补充量</label><input type="number" id="inFixedR" min="0" max="10000" step="1" value="30"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btnrow">
+      <button class="btn-primary" id="btnStart" data-primary-action>▶ 开始模拟</button>
+      <button class="btn-ghost" id="btnReset">重置为默认参数</button>
+    </div>
+  </section>
+
+  <div class="banner show info" id="banner">设置参数后点击「开始模拟」，系统将以天为时间轴动态演示药物分发全过程。</div>
+
+  <!-- ================= 时间轴控制 ================= -->
+  <div class="controls hidden" id="controls">
+    <span class="daylabel" id="dayLabel">第 0 / 0 天</span>
+    <button class="ctrl-btn play" id="btnPlay">⏸ 暂停</button>
+    <button class="ctrl-btn" id="btnStep">单步 +1 天</button>
+    <button class="ctrl-btn" id="btnRestart">⏮ 回到第 0 天</button>
+    <button class="ctrl-btn" id="btnEnd">⏭ 跳到结束</button>
+    <label style="font-size:12px;color:var(--text-muted)">速度
+      <select id="selSpeed">
+        <option value="1">慢（1天/格）</option>
+        <option value="2" selected>中（2天/格）</option>
+        <option value="5">快（5天/格）</option>
+        <option value="15">极快（15天/格）</option>
+      </select>
+    </label>
+    <input type="range" id="rngDay" min="0" max="0" value="0" step="1">
+  </div>
+
+  <!-- ================= 汇总 Panel ================= -->
+  <section class="panel panel-draft">
+    <h2>汇总</h2>
+    <div class="stats">
+      <div class="stat">
+        <div class="k">已随机化人数</div>
+        <div class="v" id="sumRand">—</div>
+        <div class="s" id="sumArm">T组 — 例 · R组 — 例</div>
+        <div class="mini"><i id="barRand"></i></div>
+      </div>
+      <div class="stat">
+        <div class="k">药物使用（按 Visit 发出）</div>
+        <div class="v" id="sumDose">—</div>
+        <div class="s" id="sumDoseDetail">T药 — 次 · R药 — 次</div>
+        <div class="mini"><i id="barDose"></i></div>
+      </div>
+      <div class="stat">
+        <div class="k">库存合计（Depot + 全部中心）</div>
+        <div class="v" id="sumStock">—</div>
+        <div class="s">不含在途；在途见下</div>
+      </div>
+      <div class="stat">
+        <div class="k">在途合计（已发出未到达）</div>
+        <div class="v" id="sumTransit">—</div>
+        <div class="s">Depot 发出、尚在物流运输中</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Depot Panel ================= -->
+  <section class="panel panel-book">
+    <h2>中央仓库 Depot</h2>
+    <div class="depot-body">
+      <div class="depot-house" id="depotHouse">
+        <div class="depot-ico">🏭</div>
+        <div class="dlabel">中央仓库</div>
+      </div>
+      <div class="gauges">
+        <div class="gauge">
+          <div class="gname t">💊 T药</div>
+          <div class="tank"><i class="fillv t" id="depotFillT" style="height:0"></i></div>
+          <div class="gnum" id="depotNumT">—</div>
+          <div class="gsub">在途发出 <b id="depotTrT">—</b></div>
+          <div class="gsub">容量 <span id="depotCapT">—</span></div>
+        </div>
+        <div class="gauge">
+          <div class="gname r">💊 R药</div>
+          <div class="tank"><i class="fillv r" id="depotFillR" style="height:0"></i></div>
+          <div class="gnum" id="depotNumR">—</div>
+          <div class="gsub">在途发出 <b id="depotTrR">—</b></div>
+          <div class="gsub">容量 <span id="depotCapR">—</span></div>
+        </div>
+      </div>
+      <div class="depot-note">
+        <h3>📋 仓库说明</h3>
+        <ul id="depotNoteList">
+          <li>开始模拟后，此处显示仓库实时库存与补货规则。</li>
+        </ul>
+      </div>
+    </div>
+    <div class="lane">
+      <h3>🚚 在途补货车辆（Depot → Site）</h3>
+      <div id="laneChips"><span class="lanenone">当前无车辆在途</span></div>
+    </div>
+  </section>
+
+  <!-- ================= Sites Panel ================= -->
+  <section class="panel panel-chapter">
+    <h2>研究中心 Sites</h2>
+    <div class="hint" id="pillLegend"></div>
+    <div id="sitesWrap">
+      <div id="fxLayer"></div>
+      <div class="sites" id="sitesGrid"><div class="placeholder">点击「开始模拟」后，此处按天展示各中心随机化人数、药物库存与警戒补药情况。</div></div>
+    </div>
+  </section>
+
+  <!-- ================= 事件日志 ================= -->
+  <section class="panel">
+    <h2>事件日志（按天）</h2>
+    <div class="logbox" id="logBox"></div>
+  </section>
+
+</div>
+
+<footer>本页面为本地算法演示：随机化、入组与物流均在浏览器内模拟，不连接真实 IRT 或供应链系统。初始分发（Step 0）按试验开始当日即时到达处理；警戒触发按「在库 + 在途」水位判断，避免在途期间重复下单。</footer>
+
+<script>
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+
+var DEFAULTS = { N:100, ratio:'1:1', visits:'0,14,28,42', accrual:180, sites:5, dist:'uniform',
+  depotT:600, depotR:600, initT:50, initR:50, alertT:10, alertR:10,
+  method:'fixed', fixedT:30, fixedR:30, transit:3 };
+
+var sim = null;        // 模拟结果
+var curDay = 0;        // 当前播放天
+var prevRenderDay = -1; // 上一次渲染的天（用于驱动动画）
+var playing = false;
+var timer = null;
+var logUpTo = -1;      // 日志已渲染到的天
+
+/* ---------------- 参数读取与校验 ---------------- */
+function setDefaults(){
+  $('inN').value = DEFAULTS.N;
+  $('inRatio').value = DEFAULTS.ratio;
+  $('inVisits').value = DEFAULTS.visits;
+  $('inAccrual').value = DEFAULTS.accrual;
+  $('inSites').value = DEFAULTS.sites;
+  $('inDist').value = DEFAULTS.dist;
+  $('inDepotT').value = DEFAULTS.depotT;
+  $('inDepotR').value = DEFAULTS.depotR;
+  $('inInitT').value = DEFAULTS.initT;
+  $('inInitR').value = DEFAULTS.initR;
+  $('inAlertT').value = DEFAULTS.alertT;
+  $('inAlertR').value = DEFAULTS.alertR;
+  $('inMethod').value = DEFAULTS.method;
+  $('inFixedT').value = DEFAULTS.fixedT;
+  $('inFixedR').value = DEFAULTS.fixedR;
+  $('inTransit').value = DEFAULTS.transit;
+  methodToggle();
+}
+
+function methodToggle(){
+  var fixed = $('inMethod').value === 'fixed';
+  $('fFixedT').classList.toggle('hidden', !fixed);
+  $('fFixedR').classList.toggle('hidden', !fixed);
+}
+
+function readParams(){
+  var errs = [];
+  function intOf(id, label, min, max){
+    var v = Number($(id).value);
+    if (!Number.isFinite(v) || !Number.isInteger(v) || v < min || v > max){
+      errs.push(label + '须为 ' + min + '～' + max + ' 的整数');
+      return min;
+    }
+    return v;
+  }
+  var N = intOf('inN','样本量',1,5000);
+  var accrual = intOf('inAccrual','入组期',1,3650);
+  var sites = intOf('inSites','研究中心数',1,50);
+  var depotT = intOf('inDepotT','Depot T药储备',0,100000);
+  var depotR = intOf('inDepotR','Depot R药储备',0,100000);
+  var initT = intOf('inInitT','Site T药初始分发量',0,10000);
+  var initR = intOf('inInitR','Site R药初始分发量',0,10000);
+  var alertT = intOf('inAlertT','Site T药警戒线',0,10000);
+  var alertR = intOf('inAlertR','Site R药警戒线',0,10000);
+  var fixedT = intOf('inFixedT','T药补充量',0,10000);
+  var fixedR = intOf('inFixedR','R药补充量',0,10000);
+  var transit = intOf('inTransit','物流天数',0,60);
+
+  // 随机化比例
+  var ra = 1, rb = 1;
+  var rt = $('inRatio').value.trim();
+  var m2 = rt.match(/^(\d+(?:\.\d+)?)\s*[:：]\s*(\d+(?:\.\d+)?)$/);
+  var m1 = rt.match(/^(\d+(?:\.\d+)?)$/);
+  if (m2){ ra = Number(m2[1]); rb = Number(m2[2]); }
+  else if (m1){ ra = Number(m1[1]); rb = 1; }
+  else errs.push('随机化比例格式应为 1:1、2:1 或单个数字');
+  if (ra <= 0 || rb <= 0) errs.push('随机化比例须为正数');
+
+  // Visit 天数
+  var visits = [];
+  var ok = true;
+  var parts = $('inVisits').value.split(/[,，;；\s]+/).filter(function(s){ return s !== ''; });
+  if (!parts.length) ok = false;
+  parts.forEach(function(s){
+    var v = Number(s);
+    if (!Number.isFinite(v) || !Number.isInteger(v) || v < 0){ ok = false; return; }
+    visits.push(v);
+  });
+  if (!ok) errs.push('Visit 天数应为非负整数，用逗号分隔');
+  else {
+    visits = Array.from(new Set(visits)).sort(function(a,b){ return a-b; });
+  }
+
+  if (errs.length){
+    banner('error', '参数有误：' + errs.join('；'));
+    return null;
+  }
+  return { N:N, ra:ra, rb:rb, visits:visits, accrual:accrual, sites:sites, dist:$('inDist').value,
+    depotT:depotT, depotR:depotR, initT:initT, initR:initR, alertT:alertT, alertR:alertR,
+    method:$('inMethod').value, fixedT:fixedT, fixedR:fixedR, transit:transit };
+}
+
+/* ---------------- 随机工具 ---------------- */
+function shuffle(arr){
+  for (var i = arr.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  }
+  return arr;
+}
+function pickWeighted(w){
+  var total = 0; w.forEach(function(x){ total += x; });
+  var r = Math.random() * total;
+  for (var i = 0; i < w.length; i++){ r -= w[i]; if (r <= 0) return i; }
+  return w.length - 1;
+}
+
+/* 受试者分布权重：均匀 / 集中（10% 中心占 40%，30% 占 40%，40% 占 20%） */
+function siteWeights(S, dist){
+  if (dist === 'uniform' || S <= 1){
+    var w = []; for (var i = 0; i < S; i++) w.push(1);
+    return { weights: w, tierDesc: S <= 1 ? '仅 1 个中心，全部受试者在该中心入组' : '均匀分布（各中心入组概率相同）' };
+  }
+  var tiers, counts;
+  if (S >= 3){
+    tiers = [[0.10, 0.40], [0.30, 0.40], [0.40, 0.20]];
+    var n1 = Math.max(1, Math.round(0.1 * S));
+    var n2 = Math.max(1, Math.round(0.3 * S));
+    var n3 = S - n1 - n2;
+    if (n3 < 1){ n3 = 1; n2 = S - n1 - n3; if (n2 < 1){ n2 = 1; n1 = S - 2; } }
+    counts = [n1, n2, n3];
+  } else {
+    tiers = [[0.5, 0.6], [0.5, 0.4]];
+    counts = [1, S - 1];
+  }
+  var weights = [], descParts = [], idx = 0;
+  tiers.forEach(function(t, k){
+    var n = counts[k], names = [];
+    for (var j = 0; j < n; j++){
+      weights.push(t[1] / n);
+      names.push('中心' + (idx + 1));
+      idx++;
+    }
+    descParts.push(Math.round(t[0] * 100) + '% 中心（' + names.join('、') + '）承接 ' + Math.round(t[1] * 100) + '% 受试者');
+  });
+  return { weights: weights, tierDesc: '集中分布 — ' + descParts.join('；') };
+}
+
+/* ---------------- 核心模拟（一次生成整条时间线） ---------------- */
+function simulate(p){
+  var S = p.sites;
+  // Step 1a：随机化列表（分组按 T:R 比例）
+  var nT = Math.round(p.N * p.ra / (p.ra + p.rb));
+  var nR = p.N - nT;
+  var arms = [];
+  var i;
+  for (i = 0; i < nT; i++) arms.push('T');
+  for (i = 0; i < nR; i++) arms.push('R');
+  shuffle(arms);
+
+  // Step 1b：中心分配与随机化日
+  var sw = siteWeights(S, p.dist);
+  var subjects = [];
+  for (i = 0; i < p.N; i++){
+    subjects.push({
+      id: i + 1, arm: arms[i],
+      site: pickWeighted(sw.weights),
+      randDay: Math.floor(Math.random() * p.accrual),
+      done: 0
+    });
+  }
+  var byRandDay = new Map(), byVisitDay = new Map();
+  subjects.forEach(function(s, idx){
+    if (!byRandDay.has(s.randDay)) byRandDay.set(s.randDay, []);
+    byRandDay.get(s.randDay).push(idx);
+    p.visits.forEach(function(off){
+      var d = s.randDay + off;
+      if (!byVisitDay.has(d)) byVisitDay.set(d, []);
+      byVisitDay.get(d).push(idx);
+    });
+  });
+  var lastDay = 0;
+  byVisitDay.forEach(function(_, k){ if (k > lastDay) lastDay = k; });
+
+  var depot = { T: p.depotT, R: p.depotR };
+  var sites = [];
+  for (i = 0; i < S; i++) sites.push({ T:0, R:0, tT:0, tR:0, rand:0, rT:0, rR:0, trig:0, given:0, due:0, completed:0 });
+  var siteTotal = [];
+  for (i = 0; i < S; i++) siteTotal.push(0);
+  subjects.forEach(function(s){ siteTotal[s.site]++; });
+  var ships = [];
+  var snapshots = [], events = [];
+  var randCount = 0, doseT = 0, doseR = 0;
+  var status = 'success', fail = null;
+
+  function ev(d, type, txt, meta){
+    if (!events[d]) events[d] = [];
+    events[d].push({ type: type, txt: txt, meta: meta || null });
+  }
+  function snap(){
+    var dTT = 0, dTR = 0;
+    var act = [];
+    ships.forEach(function(sh){
+      if (!sh.done){
+        dTT += sh.T; dTR += sh.R;
+        act.push({ site: sh.site, T: sh.T, R: sh.R, depart: sh.arrive - p.transit, arrive: sh.arrive });
+      }
+    });
+    return {
+      depot: { T: depot.T, R: depot.R },
+      depotTransit: { T: dTT, R: dTR },
+      shipments: act,
+      sites: sites.map(function(s, si){ return { T:s.T, R:s.R, tT:s.tT, tR:s.tR, rand:s.rand, rT:s.rT, rR:s.rR, trig:s.trig, given:s.given, due:s.due, completed:s.completed, total: siteTotal[si] }; }),
+      randCount: randCount, doseT: doseT, doseR: doseR
+    };
+  }
+
+  ev(0, 'info', '试验启动：样本量 N=' + p.N + '（T组 ' + nT + ' 例 / R组 ' + nR + ' 例，比例 ' + p.ra + ':' + p.rb + '），' + S + ' 个研究中心，入组期 ' + p.accrual + ' 天，Visit：随机化后第 ' + p.visits.join('、') + ' 天');
+  ev(0, 'info', '受试者分布：' + sw.tierDesc);
+  ev(0, 'info', '补充方法：' + (p.method === 'fixed' ? ('固定补充（T ' + p.fixedT + ' / R ' + p.fixedR + '）') : '按需补充（补足至初始分发量，单组补货时配 1 单位另一组以保护盲态）') + '，物流 ' + p.transit + ' 天');
+
+  for (var d = 0; d <= lastDay; d++){
+    // 1) 到货：在途 shipments 到达对应中心
+    ships.forEach(function(sh){
+      if (!sh.done && sh.arrive === d){
+        sh.done = true;
+        var st = sites[sh.site];
+        st.T += sh.T; st.R += sh.R; st.tT -= sh.T; st.tR -= sh.R;
+        ev(d, 'arrive', '📦 中心' + (sh.site + 1) + ' 收到补货：T药 +' + sh.T + '，R药 +' + sh.R + '（当前库存 T ' + st.T + ' / R ' + st.R + '）', { site: sh.site, T: sh.T, R: sh.R });
+      }
+    });
+
+    // 2) Step 0：初始分发（第 0 天，即时到达）
+    if (d === 0){
+      var perT = p.initT, perR = p.initR;
+      if (depot.T < perT * S){ perT = Math.floor(depot.T / S); ev(0, 'warn', '⚠️ Depot T药储备不足以按 ' + p.initT + ' 全量下发，各中心实际下发 ' + perT); }
+      if (depot.R < perR * S){ perR = Math.floor(depot.R / S); ev(0, 'warn', '⚠️ Depot R药储备不足以按 ' + p.initR + ' 全量下发，各中心实际下发 ' + perR); }
+      if (perT > 0 || perR > 0){
+        depot.T -= perT * S; depot.R -= perR * S;
+        sites.forEach(function(st){ st.T += perT; st.R += perR; });
+        ev(0, 'info', '🏭 Step 0 初始分发：Depot 向全部 ' + S + ' 个中心各下发 T药 ' + perT + '、R药 ' + perR + '（即时到达），Depot 剩余 T ' + depot.T + ' / R ' + depot.R);
+      }
+    }
+
+    // 3) Step 1：当日随机化入组
+    var rList = byRandDay.get(d) || [];
+    rList.forEach(function(idx){
+      var s = subjects[idx];
+      var st = sites[s.site];
+      st.rand++;
+      if (s.arm === 'T') st.rT++; else st.rR++;
+      randCount++;
+      ev(d, 'rand', '🎲 受试者 #' + s.id + ' 在中心' + (s.site + 1) + ' 随机化，分入 ' + s.arm + ' 组', { site: s.site });
+    });
+
+    // 4) Step 2：当日发药（所有 Visit 恰在当日的受试者）
+    var vList = byVisitDay.get(d) || [];
+    for (var vi2 = 0; vi2 < vList.length; vi2++){
+      var idx2 = vList[vi2];
+      var s2 = subjects[idx2];
+      var st2 = sites[s2.site];
+      var visitNo = -1;
+      for (var k = 0; k < p.visits.length; k++){ if (s2.randDay + p.visits[k] === d){ visitNo = k; break; } }
+      st2.due++;
+      if (st2[s2.arm] < 1){
+        status = 'failed';
+        fail = { day: d, site: s2.site, id: s2.id, arm: s2.arm, visit: visitNo };
+        ev(d, 'fail', '❌ 中心' + (s2.site + 1) + ' ' + s2.arm + '药库存为 0，无法为受试者 #' + s2.id + ' 发放 Visit ' + (visitNo + 1) + ' 药物，模拟终止！', { site: s2.site });
+        break;
+      }
+      if (s2.arm === 'T'){ st2.T--; doseT++; } else { st2.R--; doseR++; }
+      s2.done++;
+      st2.given++;
+      if (s2.done === p.visits.length) st2.completed++;
+      ev(d, 'dose', '💊 中心' + (s2.site + 1) + '：受试者 #' + s2.id + '（' + s2.arm + '组）完成 Visit ' + (visitNo + 1) + '（第 ' + p.visits[visitNo] + ' 天）发药，' + s2.arm + '药 −1', { site: s2.site, arm: s2.arm });
+    }
+    if (status === 'failed'){ snapshots.push(snap()); break; }
+
+    // 5) Step 3：警戒检查与补药（按 在库+在途 水位）
+    for (var si = 0; si < S; si++){
+      var st3 = sites[si];
+      var effT = st3.T + st3.tT, effR = st3.R + st3.tR;
+      var lowT = effT <= p.alertT, lowR = effR <= p.alertR;
+      if (lowT || lowR){
+        var qT, qR;
+        if (p.method === 'fixed'){ qT = p.fixedT; qR = p.fixedR; }
+        else {
+          qT = Math.max(0, p.initT - effT);
+          qR = Math.max(0, p.initR - effR);
+          if (qT > 0 && qR === 0) qR = 1;      // 盲态保护
+          else if (qR > 0 && qT === 0) qT = 1; // 盲态保护
+        }
+        if (qT > 0 || qR > 0){
+          st3.trig++;
+          var shipT = Math.min(qT, depot.T), shipR = Math.min(qR, depot.R);
+          if (shipT < qT || shipR < qR){
+            ev(d, 'warn', '⚠️ Depot 库存不足，中心' + (si + 1) + ' 本次补货部分发出（T ' + shipT + '/' + qT + '，R ' + shipR + '/' + qR + '）');
+          }
+          if (shipT + shipR > 0){
+            depot.T -= shipT; depot.R -= shipR;
+            var reason = [];
+            if (lowT) reason.push('T药水位 ' + effT + ' ≤ 警戒线 ' + p.alertT);
+            if (lowR) reason.push('R药水位 ' + effR + ' ≤ 警戒线 ' + p.alertR);
+            if (p.transit === 0){
+              st3.T += shipT; st3.R += shipR;
+              ev(d, 'trig', '🚚 中心' + (si + 1) + ' 触发警戒补货（' + reason.join('；') + '）：Depot 发出 T药 ' + shipT + '、R药 ' + shipR + '，物流 0 天当日到达（当前库存 T ' + st3.T + ' / R ' + st3.R + '）', { site: si, T: shipT, R: shipR });
+            } else {
+              st3.tT += shipT; st3.tR += shipR;
+              ships.push({ arrive: d + p.transit, site: si, T: shipT, R: shipR, done: false });
+              ev(d, 'trig', '🚚 中心' + (si + 1) + ' 触发警戒补货（' + reason.join('；') + '）：Depot 发出 T药 ' + shipT + '、R药 ' + shipR + '，' + p.transit + ' 天后到达', { site: si, T: shipT, R: shipR });
+            }
+          } else {
+            ev(d, 'warn', '⚠️ 中心' + (si + 1) + ' 触发警戒但 Depot 已无货可发');
+          }
+        }
+      }
+    }
+    snapshots.push(snap());
+  }
+
+  return {
+    snapshots: snapshots, events: events,
+    totalDays: snapshots.length - 1,
+    status: status, fail: fail,
+    meta: { nT: nT, nR: nR, S: S },
+    params: p
+  };
+}
+
+/* ---------------- 渲染 ---------------- */
+function banner(type, text){
+  var b = $('banner');
+  b.className = 'banner show ' + type;
+  b.textContent = text;
+}
+
+function pct(a, b){ return b > 0 ? Math.min(100, a / b * 100) : 0; }
+
+function renderSummary(snap, p){
+  $('sumRand').textContent = snap.randCount + ' / ' + p.N;
+  $('sumArm').textContent = 'T组 ' + sim.meta.nT + ' 例 · R组 ' + sim.meta.nR + ' 例（比例 ' + p.ra + ':' + p.rb + '）';
+  $('barRand').style.width = pct(snap.randCount, p.N) + '%';
+
+  var totalPlan = p.N * p.visits.length;
+  var totalDose = snap.doseT + snap.doseR;
+  $('sumDose').textContent = totalDose + ' / ' + totalPlan + ' 次';
+  $('sumDoseDetail').textContent = 'T药 ' + snap.doseT + ' 次 · R药 ' + snap.doseR + ' 次';
+  $('barDose').style.width = pct(totalDose, totalPlan) + '%';
+
+  var stockT = snap.depot.T, stockR = snap.depot.R;
+  snap.sites.forEach(function(s){ stockT += s.T; stockR += s.R; });
+  $('sumStock').textContent = 'T ' + stockT + ' · R ' + stockR;
+  $('sumTransit').textContent = 'T ' + snap.depotTransit.T + ' · R ' + snap.depotTransit.R;
+}
+
+/* Depot：液位罐 + 在途车道 */
+function laneHTML(snap, p, day){
+  var act = snap.shipments || [];
+  if (!act.length) return '<span class="lanenone">当前无车辆在途</span>';
+  return act.map(function(sh){
+    var prog = p.transit > 0 ? Math.min(1, Math.max(0, (day - sh.depart) / p.transit)) : 1;
+    var fresh = sh.depart === day;
+    return '<span class="truckchip' + (fresh ? ' new' : '') + '">'
+      + '<span class="tico">🚚</span>→ 中心' + (sh.site + 1) + ' '
+      + '<b class="tc-t">T+' + sh.T + '</b> <b class="tc-r">R+' + sh.R + '</b> '
+      + '<span class="tbar"><i style="width:' + Math.round(prog * 100) + '%"></i></span></span>';
+  }).join('');
+}
+
+function renderDepot(snap, p, day){
+  $('depotFillT').style.height = pct(snap.depot.T, p.depotT) + '%';
+  $('depotFillR').style.height = pct(snap.depot.R, p.depotR) + '%';
+  $('depotNumT').textContent = snap.depot.T;
+  $('depotNumR').textContent = snap.depot.R;
+  $('depotTrT').textContent = snap.depotTransit.T;
+  $('depotTrR').textContent = snap.depotTransit.R;
+  $('laneChips').innerHTML = laneHTML(snap, p, day);
+}
+
+/* Sites：药点库存可视化 */
+function pillDots(stock, maxScale, arm){
+  var per = Math.max(1, Math.ceil(maxScale / 24));
+  var slots = Math.max(1, Math.ceil(maxScale / per));
+  var full = Math.min(slots, Math.round(stock / per));
+  if (stock > 0 && full === 0) full = 1;
+  var h = '';
+  for (var j = 0; j < slots; j++){
+    h += '<i class="pill ' + (j < full ? 'full ' + arm : 'empty') + '"></i>';
+  }
+  return h;
+}
+
+var siteEls = [];
+function renderSites(snap, p){
+  var grid = $('sitesGrid');
+  if (siteEls.length !== snap.sites.length){
+    grid.innerHTML = '';
+    siteEls = snap.sites.map(function(s, i){
+      var card = document.createElement('div');
+      card.className = 'site';
+      card.id = 'siteCard-' + i;
+      card.innerHTML = '<div class="shead"><span><span class="site-ico">🏥</span><b>中心 ' + (i + 1) + '</b></span><span class="badge" data-el="badge">正常</span></div>'
+        + '<div class="meta" data-el="meta"></div>'
+        + '<div class="drugrow"><span class="dname t">T药</span><div class="pills" data-el="pillsT"></div><span class="dnum" data-el="numT">0<em data-el="alT">警戒 —</em></span></div>'
+        + '<div class="drugrow"><span class="dname r">R药</span><div class="pills" data-el="pillsR"></div><span class="dnum" data-el="numR">0<em data-el="alR">警戒 —</em></span></div>'
+        + '<div class="sfoot"><span class="trig" data-el="trig">🔔 触发补药 0 次</span><span class="intr" data-el="intr"></span></div>'
+        + '<div class="vprog"><div class="vprow"><span>📋 Visit 发药进度</span><b data-el="vpGiven">0 / 0</b></div><div class="vpbar"><i data-el="vpBar" style="width:0"></i></div><div class="vpcount" data-el="vpCount"></div></div>';
+      grid.appendChild(card);
+      return card;
+    });
+  }
+  snap.sites.forEach(function(s, i){
+    var card = siteEls[i];
+    var q = function(n){ return card.querySelector('[data-el="' + n + '"]'); };
+    var out = (s.T === 0 || s.R === 0);
+    var warn = !out && (s.T <= p.alertT || s.R <= p.alertR);
+    card.classList.toggle('out', out);
+    card.classList.toggle('warn', warn);
+    var badge = q('badge');
+    badge.textContent = out ? '缺货' : (warn ? '低库存' : '正常');
+    badge.className = 'badge ' + (out ? 'outb' : (warn ? 'warnb' : 'okb'));
+    q('meta').textContent = '👥 随机化 ' + s.rand + ' 例 · T组 ' + s.rT + ' / R组 ' + s.rR;
+    q('pillsT').innerHTML = pillDots(s.T, sim.barMax.T, 't');
+    q('pillsR').innerHTML = pillDots(s.R, sim.barMax.R, 'r');
+    q('numT').childNodes[0].textContent = s.T;
+    q('alT').textContent = '警戒 ' + p.alertT;
+    q('numR').childNodes[0].textContent = s.R;
+    q('alR').textContent = '警戒 ' + p.alertR;
+    q('trig').textContent = '🔔 触发补药 ' + s.trig + ' 次';
+    q('intr').innerHTML = (s.tT + s.tR > 0) ? '<span class="tico">🚚</span> 在途 T+' + s.tT + ' / R+' + s.tR : '';
+    var plan = s.total * sim.params.visits.length;
+    q('vpGiven').textContent = s.given + ' / ' + plan + ' 次';
+    q('vpBar').style.width = (plan > 0 ? Math.round(s.given / plan * 100) : 0) + '%';
+    var inProg = s.rand - s.completed;
+    q('vpCount').textContent = '已完成全部 Visit ' + s.completed + ' 例 · 进行中 ' + inProg + ' 例 · 未入组 ' + (s.total - s.rand) + ' 例（本中心共 ' + s.total + ' 例，计划总发药 ' + plan + ' 次）';
+  });
+}
+
+/* ---------------- 事件动画 ---------------- */
+function cardFx(i, cls){
+  var c = document.getElementById('siteCard-' + i);
+  if (!c) return;
+  c.classList.add(cls);
+  setTimeout(function(){ if (c) c.classList.remove(cls); }, 950);
+}
+
+function floatFx(siteIdx, text, cls){
+  var card = document.getElementById('siteCard-' + siteIdx);
+  var layer = $('fxLayer');
+  if (!card || !layer) return;
+  var cr = card.getBoundingClientRect();
+  var lr = layer.getBoundingClientRect();
+  var el = document.createElement('div');
+  el.className = 'floatfx ' + cls;
+  el.textContent = text;
+  el.style.left = (cr.left - lr.left + cr.width / 2 + (Math.random() * 36 - 18)) + 'px';
+  el.style.top = (cr.top - lr.top + 8) + 'px';
+  layer.appendChild(el);
+  setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 950);
+}
+
+function depotFlash(){
+  var h = $('depotHouse');
+  h.classList.remove('flash');
+  void h.offsetWidth;
+  h.classList.add('flash');
+  setTimeout(function(){ h.classList.remove('flash'); }, 620);
+}
+
+function runFx(d){
+  var evs = sim.events[d] || [];
+  evs.forEach(function(e){
+    if (!e.meta || e.meta.site === undefined) return;
+    var i = e.meta.site;
+    if (e.type === 'dose'){
+      cardFx(i, 'anim-dose');
+      floatFx(i, '−1 💊', 'minus');
+    } else if (e.type === 'arrive'){
+      cardFx(i, 'anim-arrive');
+      floatFx(i, '+' + ((e.meta.T || 0) + (e.meta.R || 0)) + ' 📦', 'plus');
+    } else if (e.type === 'trig'){
+      cardFx(i, 'anim-trig');
+      floatFx(i, '🚚 补货出发', 'alert');
+      depotFlash();
+    } else if (e.type === 'fail'){
+      cardFx(i, 'anim-fail');
+      floatFx(i, '❌ 缺药', 'failfx');
+    }
+  });
+}
+
+/* ---------------- 日志 ---------------- */
+function renderLog(day){
+  var box = $('logBox');
+  if (day < logUpTo){ box.innerHTML = ''; logUpTo = -1; }
+  var frag = '';
+  for (var d = logUpTo + 1; d <= day; d++){
+    var evs = sim.events[d];
+    if (!evs || !evs.length) continue;
+    frag += '<div class="dayhead">第 ' + d + ' 天</div>';
+    evs.forEach(function(e){ frag += '<div class="ev ' + e.type + '">' + e.txt + '</div>'; });
+  }
+  if (frag){
+    box.insertAdjacentHTML('beforeend', frag);
+    box.scrollTop = box.scrollHeight;
+  }
+  logUpTo = day;
+}
+
+function render(day){
+  if (!sim) return;
+  var snap = sim.snapshots[day];
+  var p = sim.params;
+  curDay = day;
+  var forward = prevRenderDay >= 0 && day > prevRenderDay && (day - prevRenderDay) <= 5;
+
+  $('dayLabel').textContent = '第 ' + day + ' / ' + sim.totalDays + ' 天';
+  var rng = $('rngDay');
+  rng.max = sim.totalDays;
+  rng.value = day;
+
+  renderSummary(snap, p);
+  renderDepot(snap, p, day);
+  renderSites(snap, p);
+  renderLog(day);
+
+  if (forward){
+    for (var dd = prevRenderDay + 1; dd <= day; dd++) runFx(dd);
+  }
+  prevRenderDay = day;
+
+  if (day >= sim.totalDays) showFinal();
+  else banner('info', '🔄 模拟运行中：第 ' + day + ' / ' + sim.totalDays + ' 天');
+}
+
+function showFinal(){
+  if (!sim) return;
+  var p = sim.params;
+  if (sim.status === 'success'){
+    banner('success', '✅ 完成！全部 ' + p.N + ' 例受试者已完成所有 ' + p.visits.length + ' 次 Visit 的发药，药物顺利分发（最后发药日：第 ' + sim.totalDays + ' 天）。');
+  } else {
+    var f = sim.fail;
+    banner('error', '❌ 失败：第 ' + f.day + ' 天，中心' + (f.site + 1) + ' 缺少 ' + f.arm + '药，无法为受试者 #' + f.id + ' 发放 Visit ' + (f.visit + 1) + ' 药物，模拟终止。可尝试增大 Depot 储备、提高初始分发量或上调警戒线后重试。');
+  }
+}
+
+/* ---------------- 播放控制 ---------------- */
+function daysPerTick(){ return Number($('selSpeed').value); }
+function stopPlay(){
+  if (timer){ clearInterval(timer); timer = null; }
+  playing = false;
+  $('btnPlay').textContent = '▶ 播放';
+}
+function tick(){
+  if (!sim) return;
+  curDay = Math.min(sim.totalDays, curDay + daysPerTick());
+  render(curDay);
+  if (curDay >= sim.totalDays) stopPlay();
+}
+function play(){
+  if (!sim) return;
+  if (curDay >= sim.totalDays) return;
+  playing = true;
+  $('btnPlay').textContent = '⏸ 暂停';
+  timer = setInterval(tick, 240);
+}
+
+function startSim(){
+  stopPlay();
+  var p = readParams();
+  if (!p) return;
+  sim = simulate(p);
+  // 计算站点库存可视化的最大刻度
+  var bT = Math.max(p.initT, p.alertT), bR = Math.max(p.initR, p.alertR);
+  sim.snapshots.forEach(function(sn){
+    sn.sites.forEach(function(s){
+      if (s.T > bT) bT = s.T;
+      if (s.R > bR) bR = s.R;
+    });
+  });
+  sim.barMax = { T: Math.max(bT, 1), R: Math.max(bR, 1) };
+
+  // Depot 说明与容量
+  $('depotCapT').textContent = p.depotT;
+  $('depotCapR').textContent = p.depotR;
+  var methodTxt = p.method === 'fixed'
+    ? '固定补充：每次 T药 ' + p.fixedT + ' / R药 ' + p.fixedR
+    : '按需补充：补足至初始分发量（T ' + p.initT + ' / R ' + p.initR + '），单组补货自动配 1 单位另一组';
+  $('depotNoteList').innerHTML =
+    '<li>📦 初始分发：各中心 T药 ' + p.initT + ' / R药 ' + p.initR + '</li>'
+    + '<li>🔔 警戒触发：中心「在库 + 在途」≤ 警戒线（T ' + p.alertT + ' / R ' + p.alertR + '）</li>'
+    + '<li>🚚 ' + methodTxt + '</li>'
+    + '<li>⏱ 物流运输：' + p.transit + ' 天到达</li>';
+
+  // Sites 图例
+  var perT = Math.max(1, Math.ceil(sim.barMax.T / 24));
+  var perR = Math.max(1, Math.ceil(sim.barMax.R / 24));
+  $('pillLegend').textContent = '库存以药点示意：每点 ≈ T药 ' + perT + ' 单位 / R药 ' + perR + ' 单位（按最大库存自动缩放），右侧数字为精确库存。';
+
+  $('logBox').innerHTML = '';
+  $('fxLayer').innerHTML = '';
+  logUpTo = -1;
+  prevRenderDay = -1;
+  $('controls').classList.remove('hidden');
+  render(0);
+  play();
+}
+
+function emptyUI(){
+  $('sumRand').textContent = '—';
+  $('sumArm').textContent = 'T组 — 例 · R组 — 例';
+  $('barRand').style.width = '0';
+  $('sumDose').textContent = '—';
+  $('sumDoseDetail').textContent = 'T药 — 次 · R药 — 次';
+  $('barDose').style.width = '0';
+  $('sumStock').textContent = '—';
+  $('sumTransit').textContent = '—';
+  $('depotFillT').style.height = '0';
+  $('depotFillR').style.height = '0';
+  $('depotNumT').textContent = '—';
+  $('depotNumR').textContent = '—';
+  $('depotTrT').textContent = '—';
+  $('depotTrR').textContent = '—';
+  $('depotCapT').textContent = '—';
+  $('depotCapR').textContent = '—';
+  $('laneChips').innerHTML = '<span class="lanenone">当前无车辆在途</span>';
+  $('depotNoteList').innerHTML = '<li>开始模拟后，此处显示仓库实时库存与补货规则。</li>';
+  $('pillLegend').textContent = '';
+  $('fxLayer').innerHTML = '';
+  siteEls = [];
+  $('sitesGrid').innerHTML = '<div class="placeholder">点击「开始模拟」后，此处按天展示各中心随机化人数、药物库存与警戒补药情况。</div>';
+  $('logBox').innerHTML = '';
+  $('dayLabel').textContent = '第 0 / 0 天';
+}
+
+/* ---------------- 事件绑定与初始化 ---------------- */
+$('btnStart').addEventListener('click', startSim);
+$('btnReset').addEventListener('click', function(){
+  stopPlay();
+  sim = null;
+  prevRenderDay = -1;
+  logUpTo = -1;
+  setDefaults();
+  emptyUI();
+  $('controls').classList.add('hidden');
+  banner('info', '已恢复默认参数。设置参数后点击「开始模拟」开始演示。');
+});
+$('btnPlay').addEventListener('click', function(){
+  if (!sim) return;
+  if (playing){ stopPlay(); banner('info', '⏸ 已暂停：第 ' + curDay + ' / ' + sim.totalDays + ' 天'); }
+  else {
+    if (curDay >= sim.totalDays){
+      curDay = 0; prevRenderDay = -1;
+      $('logBox').innerHTML = ''; $('fxLayer').innerHTML = ''; logUpTo = -1;
+      render(0);
+    }
+    play();
+  }
+});
+$('btnStep').addEventListener('click', function(){
+  if (!sim) return;
+  stopPlay();
+  if (curDay < sim.totalDays) render(curDay + 1);
+});
+$('btnRestart').addEventListener('click', function(){
+  if (!sim) return;
+  stopPlay();
+  curDay = 0; prevRenderDay = -1;
+  $('logBox').innerHTML = ''; $('fxLayer').innerHTML = ''; logUpTo = -1;
+  render(0);
+  banner('info', '⏮ 已回到第 0 天，可点击「播放」或「单步」继续。');
+});
+$('btnEnd').addEventListener('click', function(){
+  if (!sim) return;
+  stopPlay();
+  render(sim.totalDays);
+});
+$('rngDay').addEventListener('input', function(){
+  if (!sim) return;
+  stopPlay();
+  render(Number($('rngDay').value));
+});
+$('inMethod').addEventListener('change', methodToggle);
+
+setDefaults();
+emptyUI();
+</script>
+</body>
+</html>
