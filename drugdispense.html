@@ -209,15 +209,15 @@ footer{max-width:1300px;margin:0 auto;padding:0 4px;color:var(--text-muted);font
       <div class="fields">
         <div class="field"><label for="inN">样本量 N（例）</label><input type="number" id="inN" min="1" max="5000" step="1" value="100"></div>
         <div class="field"><label for="inRatio">随机化比例（T : R）</label><input type="text" id="inRatio" value="1:1"><div class="hint">如 1:1、2:1；只填 1 等同 1:1</div></div>
-        <div class="field"><label for="inVisits">药物分发时间 Visit（天）</label><input type="text" id="inVisits" value="0,14,28,42"><div class="hint">相对随机化日的偏移，逗号分隔，默认 4 次</div></div>
+        <div class="field"><label for="inVisits">药物分发时间（天）</label><input type="text" id="inVisits" value="0,14,28,42"><div class="hint">相对随机化日的偏移，逗号分隔，默认 4 次</div></div>
       </div>
     </div>
 
     <div class="groupbox">
       <h3>运营</h3>
       <div class="fields">
-        <div class="field"><label for="inAccrual">入组期 Accrual Period（天）</label><input type="number" id="inAccrual" min="1" max="3650" step="1" value="180"></div>
-        <div class="field"><label for="inSites">研究中心数 Number of Sites</label><input type="number" id="inSites" min="1" max="50" step="1" value="5"></div>
+        <div class="field"><label for="inAccrual">入组期 Accrual Period（天）</label><input type="number" id="inAccrual" min="1" max="3650" step="1" value="360"></div>
+        <div class="field"><label for="inSites">研究中心数 Number of Sites</label><input type="number" id="inSites" min="1" max="50" step="1" value="8"></div>
         <div class="field"><label for="inDist">受试者分布</label>
           <select id="inDist">
             <option value="uniform" selected>均匀分布</option>
@@ -231,32 +231,32 @@ footer{max-width:1300px;margin:0 auto;padding:0 4px;color:var(--text-muted);font
     <div class="groupbox">
       <h3>药物管理</h3>
       <div class="fields" style="margin-bottom:10px">
-        <div class="field"><label for="inMethod">中心 Site · 药物补充方法（两药统一）</label>
+        <div class="field"><label for="inMethod">中心 Site · 药物补充方法</label>
           <select id="inMethod">
             <option value="fixed" selected>固定补充</option>
             <option value="demand">按需补充</option>
           </select>
           <div class="hint">按需补充：补足至初始分发量；单一组补货时自动配 1 单位另一组以保护盲态</div>
         </div>
-        <div class="field"><label for="inTransit">物流天数（Depot → Site，两药统一）</label><input type="number" id="inTransit" min="0" max="60" step="1" value="3"></div>
+        <div class="field"><label for="inTransit">物流天数（Depot → Site）</label><input type="number" id="inTransit" min="0" max="60" step="1" value="3"></div>
       </div>
       <div class="armcols">
         <div class="armcol t">
           <h4>💊 T药参数</h4>
           <div class="fields">
-            <div class="field"><label for="inDepotT">中央仓库 Depot · T药储备量</label><input type="number" id="inDepotT" min="0" max="100000" step="1" value="600"></div>
-            <div class="field"><label for="inInitT">中心 Site · T药初始分发量（各中心统一）</label><input type="number" id="inInitT" min="0" max="10000" step="1" value="50"></div>
-            <div class="field"><label for="inAlertT">中心 Site · T药警戒线（各中心统一）</label><input type="number" id="inAlertT" min="0" max="10000" step="1" value="10"></div>
-            <div class="field" id="fFixedT"><label for="inFixedT">固定补充 · T药补充量</label><input type="number" id="inFixedT" min="0" max="10000" step="1" value="30"></div>
+            <div class="field"><label for="inDepotT">中央仓库 Depot · T药储备量</label><input type="number" id="inDepotT" min="0" max="100000" step="1" value="400"></div>
+            <div class="field"><label for="inInitT">中心 Site · T药初始分发量</label><input type="number" id="inInitT" min="0" max="10000" step="1" value="30"></div>
+            <div class="field"><label for="inAlertT">中心 Site · T药警戒线</label><input type="number" id="inAlertT" min="0" max="10000" step="1" value="10"></div>
+            <div class="field" id="fFixedT"><label for="inFixedT">固定补充 · T药补充量</label><input type="number" id="inFixedT" min="0" max="10000" step="1" value="10"></div>
           </div>
         </div>
         <div class="armcol r">
           <h4>💊 R药参数</h4>
           <div class="fields">
-            <div class="field"><label for="inDepotR">中央仓库 Depot · R药储备量</label><input type="number" id="inDepotR" min="0" max="100000" step="1" value="600"></div>
-            <div class="field"><label for="inInitR">中心 Site · R药初始分发量（各中心统一）</label><input type="number" id="inInitR" min="0" max="10000" step="1" value="50"></div>
-            <div class="field"><label for="inAlertR">中心 Site · R药警戒线（各中心统一）</label><input type="number" id="inAlertR" min="0" max="10000" step="1" value="10"></div>
-            <div class="field" id="fFixedR"><label for="inFixedR">固定补充 · R药补充量</label><input type="number" id="inFixedR" min="0" max="10000" step="1" value="30"></div>
+            <div class="field"><label for="inDepotR">中央仓库 Depot · R药储备量</label><input type="number" id="inDepotR" min="0" max="100000" step="1" value="400"></div>
+            <div class="field"><label for="inInitR">中心 Site · R药初始分发量</label><input type="number" id="inInitR" min="0" max="10000" step="1" value="30"></div>
+            <div class="field"><label for="inAlertR">中心 Site · R药警戒线</label><input type="number" id="inAlertR" min="0" max="10000" step="1" value="10"></div>
+            <div class="field" id="fFixedR"><label for="inFixedR">固定补充 · R药补充量</label><input type="number" id="inFixedR" min="0" max="10000" step="1" value="10"></div>
           </div>
         </div>
       </div>
