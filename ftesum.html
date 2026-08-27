@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DS FTE Summary</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root {
+    --color-primary: #206ea7;
+    --color-primary-light: rgba(32,110,167,0.15);
+    --color-positive: #0f7d15;
+    --color-warning: #cf4d03;
+    --bg-body: #f5f5f5;
+    --bg-card: #ffffff;
+    --text-primary: #444;
+    --text-muted: #777;
+    --text-heading: #222;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Oxygen, Ubuntu, Roboto, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    --radius-s: 3px;
+    --radius-m: 4px;
+    --radius-l: 8px;
+    --shadow-card: 0 1px 6px -1px rgba(0,0,0,0.1);
+    --shadow-sub: 0 1px 3px 0 rgba(0,0,0,0.1);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--font-body);
+    background: var(--bg-body);
+    color: var(--text-primary);
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+  header {
+    background: var(--bg-card);
+    color: var(--text-heading);
+    padding: 24px 30px;
+    border-radius: var(--radius-l);
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-card);
+    border-left: 4px solid var(--color-primary);
+  }
+  header h1 { font-size: 1.8rem; font-weight: 600; margin-bottom: 6px; color: var(--text-heading); }
+  header p { color: var(--text-muted); font-size: 0.95em; }
+
+  .upload-section {
+    background: var(--bg-card);
+    border-radius: var(--radius-l);
+    padding: 48px;
+    text-align: center;
+    border: 2px dashed #d1d5db;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-card);
+    transition: border-color ease-in-out 120ms, background-color ease-in-out 120ms;
+  }
+  .upload-section:hover { border-color: var(--color-primary); background: #f8f9fa; }
+  .upload-section.dragover { border-color: var(--color-primary); background: var(--color-primary-light); }
+  .upload-icon { font-size: 48px; margin-bottom: 16px; }
+  .upload-section h3 { color: var(--text-heading); margin-bottom: 8px; font-weight: 600; }
+  .upload-section p { color: var(--text-muted); font-size: 14px; margin-bottom: 16px; }
+  .upload-btn {
+    display: inline-block;
+    padding: 7.8px 16px;
+    background: var(--color-primary);
+    color: #fff;
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-m);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 400;
+    font-family: var(--font-body);
+    transition: background-color ease-in-out 120ms, filter ease-in-out 120ms;
+  }
+  .upload-btn:hover { filter: brightness(1.1); }
+  #fileInput { display: none; }
+
+  .card {
+    background: var(--bg-card);
+    border-radius: var(--radius-l);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-card);
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .card-title { 
+    font-size: 1rem; 
+    font-weight: 600; 
+    color: var(--text-heading);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 18px;
+    background: var(--color-primary);
+    border-radius: 2px;
+  }
+  .card-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
+
+  .export-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg-card);
+    padding: 12px 24px;
+    border-radius: var(--radius-l);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-card);
+  }
+  .export-bar .info { font-size: 13px; color: var(--text-muted); }
+  .export-btn {
+    padding: 7.8px 16px;
+    background: var(--color-positive);
+    color: #fff;
+    border: 1px solid var(--color-positive);
+    border-radius: var(--radius-m);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 400;
+    font-family: var(--font-body);
+    transition: background-color ease-in-out 120ms, filter ease-in-out 120ms;
+  }
+  .export-btn:hover { filter: brightness(1.1); }
+  .export-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+
+  .card-export-btn {
+    padding: 6px 14px;
+    background: var(--color-positive);
+    color: #fff;
+    border: 1px solid var(--color-positive);
+    border-radius: var(--radius-m);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 400;
+    font-family: var(--font-body);
+    transition: background-color ease-in-out 120ms, filter ease-in-out 120ms;
+  }
+  .card-export-btn:hover { filter: brightness(1.1); }
+  .card-export-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+
+  .year-range-controls {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: var(--radius-m);
+    border: 1px solid #e0e0e0;
+  }
+  .year-range-controls label {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+  .year-range-controls input[type="number"] {
+    width: 80px;
+    padding: 7px 12px;
+    border: 1px solid #ddd;
+    border-radius: var(--radius-m);
+    font-size: 0.9rem;
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    background: #fff;
+    transition: border-color ease-in-out 120ms, box-shadow ease-in-out 120ms;
+  }
+  .year-range-controls input[type="number"]:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary-light);
+  }
+  .year-range-controls button {
+    padding: 7.8px 16px;
+    background: var(--color-primary);
+    color: #fff;
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-m);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 400;
+    font-family: var(--font-body);
+    transition: background-color ease-in-out 120ms, filter ease-in-out 120ms;
+  }
+  .year-range-controls button:hover { filter: brightness(1.1); }
+
+  /* Gantt Chart */
+  .gantt-wrapper { overflow-x: auto; }
+  .gantt-table {
+    display: grid;
+    min-width: 100%;
+    font-size: 13px;
+  }
+  .gantt-header-row {
+    display: grid;
+    grid-template-columns: minmax(140px, auto) 1fr;
+    background: #f8f9fa;
+    border-bottom: 2px solid #e0e0e0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .gantt-row {
+    display: grid;
+    grid-template-columns: minmax(140px, auto) 1fr;
+    border-bottom: 1px solid #e0e0e0;
+    align-items: center;
+    min-height: 36px;
+    transition: background-color ease-in-out 120ms;
+  }
+  .gantt-row:hover { background: #f8f9fa; }
+  .gantt-cell {
+    padding: 8px 12px;
+    border-right: 1px solid #e0e0e0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .gantt-cell.header {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .gantt-cell.project {
+    font-weight: 500;
+    color: var(--text-heading);
+  }
+  .gantt-cell.sum { color: var(--text-muted); font-size: 0.85rem; }
+  .gantt-cell.person { font-size: 0.85rem; }
+  .gantt-timeline {
+    position: relative;
+    height: 36px;
+    padding: 4px 8px;
+  }
+  .gantt-bar {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 24px;
+    border-radius: var(--radius-s);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 11px;
+    color: white;
+    font-weight: 500;
+    box-shadow: var(--shadow-sub);
+    transition: transform ease-in-out 120ms, box-shadow ease-in-out 120ms;
+    cursor: pointer;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .gantt-bar:hover { transform: translateY(-50%) scale(1.02); box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+  .status-Pending { background: #9ca3af; }
+  .status-Ongoing { background: var(--color-primary); }
+  .status-Planning { background: var(--color-warning); }
+  .status-Completed { background: var(--color-positive); }
+
+  .gantt-months {
+    display: grid;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .gantt-months > div {
+    padding: 4px 2px;
+    text-align: center;
+    border-right: 1px solid #e0e0e0;
+  }
+  .gantt-legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: var(--radius-s); }
+
+  .gantt-controls {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: var(--radius-m);
+    border: 1px solid #e0e0e0;
+  }
+  .gantt-controls label {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+  .gantt-controls input[type="month"] {
+    padding: 7px 12px;
+    border: 1px solid #ddd;
+    border-radius: var(--radius-m);
+    font-size: 0.9rem;
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    background: #fff;
+    transition: border-color ease-in-out 120ms, box-shadow ease-in-out 120ms;
+  }
+  .gantt-controls input[type="month"]:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary-light);
+  }
+  .gantt-controls button {
+    padding: 7.8px 16px;
+    background: var(--color-primary);
+    color: #fff;
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-m);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 400;
+    font-family: var(--font-body);
+    transition: background-color ease-in-out 120ms, filter ease-in-out 120ms;
+  }
+  .gantt-controls button:hover { filter: brightness(1.1); }
+
+  .current-time-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #ab0f0e;
+    z-index: 5;
+    pointer-events: none;
+  }
+  
+  /* Custom tooltip for faster hover */
+  .custom-tooltip {
+    position: fixed;
+    background: var(--text-heading);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: var(--radius-m);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    white-space: pre-line;
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  .custom-tooltip.show {
+    opacity: 1;
+  }
+  
+  .fte-chart-container .current-time-line::before {
+    content: '今天';
+    position: absolute;
+    top: -20px;
+    left: -16px;
+    background: #ab0f0e;
+    color: white;
+    padding: 2px 6px;
+    border-radius: var(--radius-s);
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  /* FTE Chart */
+  .fte-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 16px;
+    margin-bottom: 20px;
+    align-items: start;
+  }
+  .filter-panel {
+    background: var(--bg-card);
+    border-radius: var(--radius-m);
+    padding: 16px;
+    border: 1px solid #e0e0e0;
+    box-shadow: var(--shadow-sub);
+  }
+  .filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .filter-title { font-weight: 600; font-size: 0.85rem; color: var(--text-heading); }
+  .filter-actions { display: flex; gap: 8px; }
+  .filter-actions button {
+    padding: 3px 10px;
+    font-size: 12px;
+    background: #edf2f7;
+    border: 1px solid #ddd;
+    border-radius: var(--radius-m);
+    cursor: pointer;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    transition: background-color ease-in-out 120ms;
+  }
+  .filter-actions button:hover { background: #e2e8f0; }
+  .checkbox-list {
+    overflow-y: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-height: 420px;
+    align-content: flex-start;
+  }
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: var(--radius-s);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color ease-in-out 120ms;
+    width: calc(50% - 2px);
+    box-sizing: border-box;
+  }
+  .checkbox-item:hover { background: #f8f9fa; }
+  .checkbox-item input { cursor: pointer; }
+  .param-panel {
+    background: var(--bg-card);
+    border-radius: var(--radius-m);
+    padding: 16px;
+    border: 1px solid #e0e0e0;
+    box-shadow: var(--shadow-sub);
+    min-width: 180px;
+  }
+  .param-panel label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .param-panel input {
+    width: 100%;
+    padding: 7px 12px;
+    border: 1px solid #ddd;
+    border-radius: var(--radius-m);
+    font-size: 0.9rem;
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    background: #fff;
+    transition: border-color ease-in-out 120ms, box-shadow ease-in-out 120ms;
+  }
+  .param-panel input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary-light);
+  }
+  .chart-container,
+  .fte-chart-container {
+    position: relative;
+    margin-top: 16px;
+  }
+  
+  .chart-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-bottom: 8px;
+    padding-left: 4px;
+  }
+
+  /* Summary Table */
+  .summary-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .summary-tab {
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    transition: color ease-in-out 120ms, border-color ease-in-out 120ms;
+  }
+  .summary-tab:hover { color: var(--color-primary); }
+  .summary-tab.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    font-weight: 600;
+  }
+  .summary-table-wrapper { overflow-x: auto; }
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .summary-table th, .summary-table td {
+    padding: 4px 8px;
+    text-align: right;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .summary-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    position: sticky;
+    top: 0;
+  }
+  .summary-table th:first-child, .summary-table td:first-child {
+    text-align: left;
+    position: sticky;
+    left: 0;
+    background: var(--bg-card);
+    font-weight: 500;
+    min-width: 140px;
+  }
+  .summary-table th:first-child { background: #f8f9fa; }
+  .summary-table tr:hover td { background: #f8f9fa; }
+  .summary-table tr:hover td:first-child { background: #f3f4f6; }
+  .summary-table .year-col { background: var(--color-primary-light) !important; font-weight: 600; }
+  .summary-table .total-col { background: rgba(32,110,167,0.25) !important; font-weight: 700; color: var(--color-primary); }
+  .summary-table tr.total-row td {
+    background: #f3f4f6 !important;
+    font-weight: 700;
+    border-top: 2px solid #9ca3af;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+  }
+  .spinner {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e0e0e0;
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+
+  .tooltip {
+    position: absolute;
+    background: var(--text-heading);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: var(--radius-m);
+    font-size: 0.85rem;
+    pointer-events: none;
+    z-index: 1000;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  @media print {
+    .export-bar, .upload-section { display: none; }
+    body { background: white; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>DS FTE Summary</h1>
+  </header>
+
+  <div class="upload-section" id="uploadSection">
+    <div class="upload-icon">📁</div>
+    <h3>上传项目汇总 Excel 文件</h3>
+    <p>支持 .xlsx 格式，包含"项目汇总"主表和各化合物工时表</p>
+    <label class="upload-btn" for="fileInput">选择文件</label>
+    <input type="file" id="fileInput" accept=".xlsx,.xls">
+  </div>
+
+  <div id="content" style="display:none">
+    <div class="export-bar">
+      <div class="info" id="fileInfo">已加载文件</div>
+    </div>
+
+    <div id="exportArea">
+      <!-- Section 1: Gantt -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">① 项目时间线 (Gantt)</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div class="gantt-legend">
+              <div class="legend-item"><div class="legend-dot status-Pending"></div>待启动</div>
+              <div class="legend-item"><div class="legend-dot status-Ongoing"></div>进行中</div>
+              <div class="legend-item"><div class="legend-dot status-Planning"></div>规划中</div>
+              <div class="legend-item"><div class="legend-dot status-Completed"></div>已完成</div>
+            </div>
+            <button class="card-export-btn" onclick="exportCardPNG('ganttExport')">📷 导出 PNG</button>
+          </div>
+        </div>
+        <div class="gantt-controls">
+          <label>起始月份:</label>
+          <input type="month" id="ganttStart" value="2026-01">
+          <label>结束月份:</label>
+          <input type="month" id="ganttEnd" value="2027-12">
+          <button onclick="renderGantt()">应用</button>
+          <button onclick="resetGanttRange()">重置默认</button>
+        </div>
+        <div id="ganttExport">
+          <div class="gantt-wrapper" id="ganttWrapper"></div>
+        </div>
+      </div>
+
+      <!-- Section 2: FTE Chart -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">② FTE 趋势分析</div>
+            <div class="card-subtitle">FTE = 月度工时 / 每月标准工时，支持按项目或人员筛选</div>
+          </div>
+          <button class="card-export-btn" onclick="exportCardPNG('fteExport')">📷 导出 PNG</button>
+        </div>
+        <div class="gantt-controls" style="margin-bottom:16px;">
+          <label>每月标准工时 (小时)</label>
+          <input type="number" id="monthlyHours" value="132" min="1" onchange="updateFTEChart(); renderSummaryTable();">
+          <label>起始月份:</label>
+          <input type="month" id="fteStart" value="2026-01">
+          <label>结束月份:</label>
+          <input type="month" id="fteEnd" value="2027-12">
+          <button onclick="updateFTEChart()">应用</button>
+          <button onclick="resetFteRange()">重置默认</button>
+          <label style="margin-left:12px;">
+            <input type="checkbox" id="showFteCurrentLine" checked onchange="updateFTEChart()"> 显示当前时间线
+          </label>
+        </div>
+
+        <div id="fteExport" style="display:flex; flex-direction:column; gap:24px;">
+          <!-- Project section -->
+          <div id="fteExportProject" style="display:flex; gap:16px; height:500px;">
+            <div class="filter-panel" style="flex:0 0 280px; display:flex; flex-direction:column; height:100%;">
+              <div class="filter-header">
+                <div class="filter-title">📋 按项目筛选</div>
+                <div class="filter-actions">
+                  <button onclick="toggleAll('project', true)">全选</button>
+                  <button onclick="toggleAll('project', false)">清空</button>
+                </div>
+              </div>
+              <div class="checkbox-list" id="projectCheckboxes" style="flex:1; overflow-y:auto;"></div>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; height:100%;">
+              <div class="chart-title">按项目汇总 FTE</div>
+              <div style="flex:1; position:relative; min-height:0;">
+                <canvas id="fteChartByProject"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Personnel section -->
+          <div id="fteExportPersonnel" style="display:flex; gap:16px; height:500px;">
+            <div class="filter-panel" style="flex:0 0 280px; display:flex; flex-direction:column; height:100%;">
+              <div class="filter-header">
+                <div class="filter-title">👤 按人员筛选</div>
+                <div class="filter-actions">
+                  <button onclick="toggleAll('personnel', true)">全选</button>
+                  <button onclick="toggleAll('personnel', false)">清空</button>
+                </div>
+              </div>
+              <div class="checkbox-list" id="personnelCheckboxes" style="flex:1; overflow-y:auto;"></div>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; height:100%;">
+              <div class="chart-title">按人员汇总 FTE</div>
+              <div style="flex:1; position:relative; min-height:0;">
+                <canvas id="fteChartByPersonnel"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Summary -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">③ FTE 汇总表</div>
+            <div class="card-subtitle">按项目、职能、人员维度汇总季度和年度 FTE</div>
+          </div>
+          <button class="card-export-btn" onclick="exportCardPNG('summaryExport')">📷 导出 PNG</button>
+        </div>
+        <div class="year-range-controls">
+          <label>起始年份:</label>
+          <input type="number" id="summaryStartYear" value="2026" min="2000" max="2100">
+          <label>结束年份:</label>
+          <input type="number" id="summaryEndYear" value="2027" min="2000" max="2100">
+          <button onclick="renderSummaryTable()">应用</button>
+        </div>
+        <div class="summary-tabs">
+          <button class="summary-tab active" data-view="drug" onclick="switchSummaryView('drug', this)">按药物</button>
+          <button class="summary-tab" data-view="project" onclick="switchSummaryView('project', this)">按项目</button>
+          <button class="summary-tab" data-view="function" onclick="switchSummaryView('function', this)">按职能</button>
+          <button class="summary-tab" data-view="personnel" onclick="switchSummaryView('personnel', this)">按人员</button>
+        </div>
+        <div id="summaryExport">
+          <div class="summary-table-wrapper" id="summaryTableWrapper"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ Global State ============
+const state = {
+  mainData: [],          // [{sponsor, compound, protocol, status, priority, sum, pm, st, pg, dm, vendor, edc, irt, prot, fpfv, dryrun1, lplv, dryrun2, dbl, tfl, csr, other}]
+  workData: [],          // [{compound, protocol, status, role, personnel, hours: {'2026-01': 10, ...}}]
+  allMonths: [],         // ['2026-01', '2026-02', ...]
+  allProjects: [],       // ['LY01005-107', ...]
+  allPersonnel: [],      // ['谷天赏', ...]
+  selectedProjects: new Set(),
+  selectedPersonnel: new Set(),
+  fteChartByProject: null,
+  fteChartByPersonnel: null,
+  currentSummaryView: 'drug'
+};
+
+const COLORS = [
+  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16',
+  '#06b6d4', '#a855f7', '#eab308', '#22c55e', '#e11d48',
+  '#0891b2', '#7c3aed', '#dc2626', '#059669', '#d97706'
+];
+
+// ============ Excel Parsing ============
+document.getElementById('fileInput').addEventListener('change', handleFile);
+const uploadSection = document.getElementById('uploadSection');
+uploadSection.addEventListener('dragover', e => { e.preventDefault(); uploadSection.classList.add('dragover'); });
+uploadSection.addEventListener('dragleave', () => uploadSection.classList.remove('dragover'));
+uploadSection.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadSection.classList.remove('dragover');
+  if (e.dataTransfer.files.length) {
+    document.getElementById('fileInput').files = e.dataTransfer.files;
+    handleFile({ target: { files: e.dataTransfer.files } });
+  }
+});
+
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const data = new Uint8Array(evt.target.result);
+      const wb = XLSX.read(data, { cellDates: true });
+      parseWorkbook(wb, file.name);
+    } catch (err) {
+      alert('文件解析失败: ' + err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseDate(val) {
+  if (!val) return null;
+  if (val instanceof Date) return val;
+  if (typeof val === 'number') {
+    // Excel serial date
+    const d = new Date((val - 25569) * 86400 * 1000);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof val === 'string') {
+    val = val.trim();
+    if (!val) return null;
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
+function parseMonthKey(val) {
+  // Match YY-MM pattern
+  if (typeof val === 'string' && /^\d{2}-\d{2}$/.test(val.trim())) {
+    const [yy, mm] = val.trim().split('-');
+    return `20${yy}-${mm}`;
+  }
+  return null;
+}
+
+function parseWorkbook(wb, fileName) {
+  state.mainData = [];
+  state.workData = [];
+
+  // Parse main sheet (first sheet)
+  const mainSheetName = wb.SheetNames[0];
+  const mainSheet = wb.Sheets[mainSheetName];
+  const mainRows = XLSX.utils.sheet_to_json(mainSheet, { header: 1, defval: '' });
+
+  if (mainRows.length < 2) {
+    alert('主表数据不足');
+    return;
+  }
+
+  // Find column indices by header name
+  const headers = mainRows[0].map(h => String(h).trim());
+  const colIdx = {};
+  const targetCols = ['Sponsor','Compound','Protocol','Status','Priority','Sum','PM','ST','PG','DM','Vendor','EDC','IRT','PROT','FPFV','LPLV','DBL','TFL','CSR','Other'];
+  headers.forEach((h, i) => {
+    const match = targetCols.find(t => h.toLowerCase() === t.toLowerCase());
+    if (match) colIdx[match] = i;
+  });
+
+  // Handle duplicate DRYRUN columns - find all
+  const dryrunIndices = [];
+  headers.forEach((h, i) => {
+    if (h.toLowerCase() === 'dryrun') dryrunIndices.push(i);
+  });
+
+  for (let i = 1; i < mainRows.length; i++) {
+    const row = mainRows[i];
+    if (!row || !row[colIdx.Compound] && !row[colIdx.Protocol]) continue;
+    const item = {
+      sponsor: row[colIdx.Sponsor] || '',
+      compound: String(row[colIdx.Compound] || '').trim(),
+      protocol: String(row[colIdx.Protocol] || '').trim(),
+      status: String(row[colIdx.Status] || '').trim(),
+      priority: String(row[colIdx.Priority] || '').trim(),
+      sum: String(row[colIdx.Sum] || '').trim(),
+      pm: String(row[colIdx.PM] || '').trim(),
+      st: String(row[colIdx.ST] || '').trim(),
+      pg: String(row[colIdx.PG] || '').trim(),
+      dm: String(row[colIdx.DM] || '').trim(),
+      vendor: row[colIdx.Vendor] || '',
+      edc: row[colIdx.EDC] || '',
+      irt: row[colIdx.IRT] || '',
+      prot: parseDate(row[colIdx.PROT]),
+      fpfv: parseDate(row[colIdx.FPFV]),
+      lplv: parseDate(row[colIdx.LPLV]),
+      dbl: parseDate(row[colIdx.DBL]),
+      tfl: parseDate(row[colIdx.TFL]),
+      csr: parseDate(row[colIdx.CSR]),
+      other: row[colIdx.Other] || ''
+    };
+    if (!item.compound && !item.protocol) continue;
+    state.mainData.push(item);
+  }
+
+  // Parse work sheets
+  const monthSet = new Set();
+  const projectSet = new Set();
+  const personnelSet = new Set();
+
+  for (let i = 1; i < wb.SheetNames.length; i++) {
+    const sheetName = wb.SheetNames[i];
+    const sheet = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    if (rows.length < 2) continue;
+
+    const wHeaders = rows[0].map(h => String(h).trim());
+    // Find month columns
+    const monthColMap = {}; // colIndex -> '2026-01'
+    wHeaders.forEach((h, idx) => {
+      const mk = parseMonthKey(h);
+      if (mk) {
+        monthColMap[idx] = mk;
+        monthSet.add(mk);
+      }
+    });
+
+    // Find base columns
+    const wColIdx = {};
+    wHeaders.forEach((h, idx) => {
+      const hl = h.toLowerCase();
+      if (hl === 'compound') wColIdx.compound = idx;
+      else if (hl === 'protocol') wColIdx.protocol = idx;
+      else if (hl === 'status') wColIdx.status = idx;
+      else if (hl === 'role') wColIdx.role = idx;
+      else if (hl === 'personnel') wColIdx.personnel = idx;
+    });
+
+    for (let r = 1; r < rows.length; r++) {
+      const row = rows[r];
+      const compound = String(row[wColIdx.compound] || '').trim();
+      const protocol = String(row[wColIdx.protocol] || '').trim();
+      const status = String(row[wColIdx.status] || '').trim();
+      const role = String(row[wColIdx.role] || '').trim();
+      const personnel = String(row[wColIdx.personnel] || '').trim();
+
+      if (!compound && !protocol && !personnel) continue;
+
+      const hours = {};
+      for (const [colIdx, monthKey] of Object.entries(monthColMap)) {
+        const v = row[colIdx];
+        const num = typeof v === 'number' ? v : parseFloat(v);
+        if (!isNaN(num) && num > 0) {
+          hours[monthKey] = num;
+        }
+      }
+
+      if (Object.keys(hours).length === 0 && !personnel) continue;
+
+      state.workData.push({ compound, protocol, status, role, personnel, hours });
+
+      if (compound && protocol) projectSet.add(`${compound}-${protocol}`);
+      if (personnel && personnel !== 'TBD' && personnel !== 'NA') personnelSet.add(personnel);
+      Object.keys(hours).forEach(m => monthSet.add(m));
+    }
+  }
+
+  state.allMonths = Array.from(monthSet).sort();
+  state.allProjects = Array.from(projectSet).sort();
+  state.allPersonnel = Array.from(personnelSet).sort();
+
+  // Default: select all projects and personnel (including TBD)
+  state.selectedProjects = new Set(state.allProjects);
+  state.selectedPersonnel = new Set([...state.allPersonnel, 'TBD']);
+
+  // Set default monthly hours
+  document.getElementById('monthlyHours').value = 132;
+
+  // Show content
+  document.getElementById('content').style.display = 'block';
+  document.getElementById('fileInfo').textContent =
+    `已加载: ${fileName} | 项目: ${state.mainData.length} 条 | 工作记录: ${state.workData.length} 条 | 月份范围: ${state.allMonths[0] || '-'} 至 ${state.allMonths[state.allMonths.length-1] || '-'}`;
+
+  renderAll();
+}
+
+// ============ Render All ============
+function renderAll() {
+  renderGantt();
+  renderFilters();
+  updateFTEChart();
+  renderSummaryTable();
+}
+
+// ============ Gantt Chart ============
+function resetGanttRange() {
+  document.getElementById('ganttStart').value = '2026-01';
+  document.getElementById('ganttEnd').value = '2027-12';
+  renderGantt();
+}
+
+function renderGantt() {
+  const wrapper = document.getElementById('ganttWrapper');
+
+  if (state.mainData.length === 0) {
+    wrapper.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div>暂无项目数据</div>';
+    return;
+  }
+
+  // Get date range from controls
+  const startVal = document.getElementById('ganttStart').value;
+  const endVal = document.getElementById('ganttEnd').value;
+  
+  let minDate, maxDate;
+  if (startVal) {
+    const [y, m] = startVal.split('-').map(Number);
+    minDate = new Date(y, m - 1, 1);
+  } else {
+    minDate = new Date(2026, 0, 1);
+  }
+  
+  if (endVal) {
+    const [y, m] = endVal.split('-').map(Number);
+    maxDate = new Date(y, m, 0); // Last day of the month
+  } else {
+    maxDate = new Date(2027, 11, 31);
+  }
+
+  const totalDays = (maxDate - minDate) / (1000 * 60 * 60 * 24);
+
+  // Build month headers
+  const months = [];
+  let cur = new Date(minDate);
+  while (cur <= maxDate) {
+    months.push(new Date(cur));
+    cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+  }
+
+  // Current date for the line
+  const now = new Date();
+  const nowDays = (now - minDate) / (1000 * 60 * 60 * 24);
+  const nowPositionPercent = (nowDays / totalDays) * 100;
+  const showCurrentLine = now >= minDate && now <= maxDate;
+
+  let html = '<div class="gantt-table">';
+
+  // Header row
+  html += '<div class="gantt-header-row">';
+  html += '<div class="gantt-cell header">项目</div>';
+  html += '<div class="gantt-cell header" style="border-right:none">时间线</div>';
+  html += '</div>';
+
+  // Month sub-header
+  html += '<div class="gantt-row" style="min-height: 28px; background: #f9fafb">';
+  html += '<div class="gantt-cell"></div>';
+  html += '<div class="gantt-cell" style="padding:0; border-right:none; position:relative;">';
+  html += '<div class="gantt-months" style="grid-template-columns: repeat(' + months.length + ', 1fr); display:grid">';
+  months.forEach(m => {
+    html += `<div>${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}</div>`;
+  });
+  html += '</div>';
+  if (showCurrentLine) {
+    html += `<div class="current-time-line" style="left:${nowPositionPercent}%"></div>`;
+  }
+  html += '</div></div>';
+
+  // Data rows (include all projects)
+  state.mainData.forEach(item => {
+    const projectName = `${item.compound}-${item.protocol}`;
+    const statusClass = `status-${item.status || 'Pending'}`;
+
+    // Calculate 3 segments: PROT→FPFV, FPFV→LPLV, LPLV→end
+    const prot = item.prot;
+    const fpfv = item.fpfv;
+    const lplv = item.lplv;
+    const endDate = item.csr || item.tfl || item.dbl || lplv;
+
+    let segments = [];
+    
+    if (prot && fpfv) {
+      const startDays = Math.max(0, (prot - minDate) / (1000 * 60 * 60 * 24));
+      const endDays = Math.min(totalDays, (fpfv - minDate) / (1000 * 60 * 60 * 24));
+      const left = (startDays / totalDays) * 100;
+      const width = ((endDays - startDays) / totalDays) * 100;
+      if (width > 0) segments.push({ left, width, color: '#9ca3af', label: 'PROT→FPFV' });
+    }
+    
+    if (fpfv && lplv) {
+      const startDays = Math.max(0, (fpfv - minDate) / (1000 * 60 * 60 * 24));
+      const endDays = Math.min(totalDays, (lplv - minDate) / (1000 * 60 * 60 * 24));
+      const left = (startDays / totalDays) * 100;
+      const width = ((endDays - startDays) / totalDays) * 100;
+      if (width > 0) segments.push({ left, width, color: '#206ea7', label: 'FPFV→LPLV' });
+    }
+    
+    if (lplv && endDate) {
+      const startDays = Math.max(0, (lplv - minDate) / (1000 * 60 * 60 * 24));
+      const endDays = Math.min(totalDays, (endDate - minDate) / (1000 * 60 * 60 * 24));
+      const left = (startDays / totalDays) * 100;
+      const width = ((endDays - startDays) / totalDays) * 100;
+      if (width > 0) segments.push({ left, width, color: '#077b70', label: 'LPLV→END' });
+    }
+
+    // Build tooltip for project name - only show personnel
+    const personnelParts = [];
+    if (item.st) personnelParts.push(`ST: ${item.st}`);
+    if (item.pg) personnelParts.push(`PG: ${item.pg}`);
+    if (item.dm) personnelParts.push(`DM: ${item.dm}`);
+    const personnelTooltip = personnelParts.length > 0 ? personnelParts.join('\n') : '未分配人员';
+
+    html += `<div class="gantt-row">`;
+    html += `<div class="gantt-cell project" data-tooltip="${personnelTooltip}">${projectName}</div>`;
+    html += `<div class="gantt-timeline" style="position:relative;">`;
+    
+    // Render 3 segments without milestone labels
+    segments.forEach(seg => {
+      html += `<div class="gantt-bar" style="left:${seg.left}%; width:${seg.width}%; background:${seg.color}">`;
+      html += '</div>';
+    });
+    
+    if (showCurrentLine) {
+      html += `<div class="current-time-line" style="left:${nowPositionPercent}%"></div>`;
+    }
+    html += '</div></div>';
+  });
+
+  html += '</div>';
+  wrapper.innerHTML = html;
+}
+
+// ============ Filters ============
+function renderFilters() {
+  const projectBox = document.getElementById('projectCheckboxes');
+  const personnelBox = document.getElementById('personnelCheckboxes');
+
+  projectBox.innerHTML = state.allProjects.map(p =>
+    `<label class="checkbox-item"><input type="checkbox" value="${p}" ${state.selectedProjects.has(p)?'checked':''} onchange="toggleSelection('project','${p.replace(/'/g,"\\'")}',this.checked)">${p}</label>`
+  ).join('');
+
+  // Add regular personnel plus TBD option
+  const allPersonnelWithTBD = [...state.allPersonnel, 'TBD'];
+  personnelBox.innerHTML = allPersonnelWithTBD.map(p =>
+    `<label class="checkbox-item"><input type="checkbox" value="${p}" ${state.selectedPersonnel.has(p)?'checked':''} onchange="toggleSelection('personnel','${p.replace(/'/g,"\\'")}',this.checked)">${p}</label>`
+  ).join('');
+}
+
+function toggleSelection(type, value, checked) {
+  const set = type === 'project' ? state.selectedProjects : state.selectedPersonnel;
+  if (checked) set.add(value); else set.delete(value);
+  updateFTEChart();
+}
+
+function toggleAll(type, checked) {
+  const set = type === 'project' ? state.selectedProjects : state.selectedPersonnel;
+  let list = type === 'project' ? state.allProjects : [...state.allPersonnel, 'TBD'];
+  if (checked) list.forEach(v => set.add(v)); else set.clear();
+  renderFilters();
+  updateFTEChart();
+}
+
+// ============ FTE Chart ============
+function computeFTEByProject(projectKey, months) {
+  const result = {};
+  months.forEach(m => result[m] = 0);
+  state.workData.forEach(rec => {
+    const key = `${rec.compound}-${rec.protocol}`;
+    if (key !== projectKey) return;
+    for (const [m, h] of Object.entries(rec.hours)) {
+      if (result[m] !== undefined) result[m] += h;
+    }
+  });
+  return result;
+}
+
+function computeFTEByPersonnel(personName, months) {
+  const result = {};
+  months.forEach(m => result[m] = 0);
+  state.workData.forEach(rec => {
+    // Handle TBD: match records with empty/null personnel or 'TBD'/'NA' values
+    if (personName === 'TBD') {
+      const p = rec.personnel ? rec.personnel.trim() : '';
+      if (p !== '' && p !== 'TBD' && p !== 'NA') return; // Skip if personnel is assigned
+    } else {
+      if (rec.personnel !== personName) return;
+    }
+    for (const [m, h] of Object.entries(rec.hours)) {
+      if (result[m] !== undefined) result[m] += h;
+    }
+  });
+  return result;
+}
+
+function computeTotalFTE(months) {
+  const result = {};
+  months.forEach(m => result[m] = 0);
+  state.workData.forEach(rec => {
+    for (const [m, h] of Object.entries(rec.hours)) {
+      if (result[m] !== undefined) result[m] += h;
+    }
+  });
+  return result;
+}
+
+function resetFteRange() {
+  document.getElementById('fteStart').value = '2026-01';
+  document.getElementById('fteEnd').value = '2027-12';
+  updateFTEChart();
+}
+
+function updateFTEChart() {
+  const monthlyHours = parseFloat(document.getElementById('monthlyHours').value) || 132;
+  
+  // Get time range
+  const startVal = document.getElementById('fteStart').value;
+  const endVal = document.getElementById('fteEnd').value;
+  
+  let startDate, endDate;
+  if (startVal) {
+    const [y, m] = startVal.split('-').map(Number);
+    startDate = new Date(y, m - 1, 1);
+  } else {
+    startDate = new Date(2026, 0, 1);
+  }
+  
+  if (endVal) {
+    const [y, m] = endVal.split('-').map(Number);
+    endDate = new Date(y, m, 0);
+  } else {
+    endDate = new Date(2027, 11, 31);
+  }
+  
+  // Filter months by range
+  const months = state.allMonths.filter(m => {
+    const [y, mm] = m.split('-').map(Number);
+    const mDate = new Date(y, mm - 1, 1);
+    return mDate >= startDate && mDate <= endDate;
+  });
+
+  if (months.length === 0) return;
+
+  const labels = months;
+  const showCurrentLine = document.getElementById('showFteCurrentLine').checked;
+  
+  // Custom plugin to draw current time line
+  const currentTimeLinePlugin = {
+    id: 'currentTimeLine',
+    afterDraw: (chart) => {
+      if (!showCurrentLine) return;
+      
+      const ctx = chart.ctx;
+      const xAxis = chart.scales.x;
+      const yAxis = chart.scales.y;
+      
+      const nowYear = new Date().getFullYear();
+      const nowMonth = new Date().getMonth() + 1;
+      const nowKey = `${nowYear}-${String(nowMonth).padStart(2, '0')}`;
+      
+      const nowIndex = chart.data.labels.indexOf(nowKey);
+      if (nowIndex === -1) return;
+      
+      const xPixel = xAxis.getPixelForValue(nowIndex);
+      
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(xPixel, yAxis.top);
+      ctx.lineTo(xPixel, yAxis.bottom);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#ef4444';
+      ctx.setLineDash([5, 5]);
+      ctx.stroke();
+      
+      ctx.fillStyle = '#ef4444';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('今天', xPixel, yAxis.top - 5);
+      ctx.restore();
+    }
+  };
+
+  // ========== Chart 1: By Project (sum of selected projects) ==========
+  const selectedProjectsList = Array.from(state.selectedProjects);
+  const projectData = months.map(m => {
+    let sum = 0;
+    selectedProjectsList.forEach(p => {
+      const hours = computeFTEByProject(p, months);
+      sum += hours[m] || 0;
+    });
+    return +(sum / monthlyHours).toFixed(2);
+  });
+  
+  const projectDatasets = [];
+  if (selectedProjectsList.length > 0) {
+    const labelText = selectedProjectsList.length === 1 
+      ? selectedProjectsList[0] 
+      : `${selectedProjectsList.length} 个项目合计`;
+    projectDatasets.push({
+      label: labelText,
+      data: projectData,
+      borderColor: '#206ea7',
+      backgroundColor: 'rgba(32,110,167,0.15)',
+      borderWidth: 2.5,
+      pointRadius: 3,
+      tension: 0.3,
+      fill: true
+    });
+  }
+
+  // Auto-calculate Y-axis max for project chart
+  const projectMax = projectData.length > 0 ? Math.max(...projectData) : 20;
+  const projectYMax = Math.ceil(projectMax * 1.1) || 20;
+
+  const chartOptionsProject = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { font: { size: 11 }, boxWidth: 12, padding: 10 }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} FTE`
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 11 }, maxRotation: 45 }
+      },
+      y: {
+        beginAtZero: true,
+        max: projectYMax,
+        title: { display: true, text: 'FTE (人月)', font: { size: 12, weight: '600' } },
+        grid: { color: '#f3f4f6' },
+        ticks: { font: { size: 11 } }
+      }
+    }
+  };
+
+  if (state.fteChartByProject) state.fteChartByProject.destroy();
+  const ctx1 = document.getElementById('fteChartByProject').getContext('2d');
+  state.fteChartByProject = new Chart(ctx1, {
+    type: 'line',
+    data: { labels, datasets: projectDatasets },
+    plugins: [currentTimeLinePlugin],
+    options: chartOptionsProject
+  });
+
+  // ========== Chart 2: By Personnel (sum of selected personnel) ==========
+  const selectedPersonnelList = Array.from(state.selectedPersonnel);
+  const personnelData = months.map(m => {
+    let sum = 0;
+    selectedPersonnelList.forEach(p => {
+      const hours = computeFTEByPersonnel(p, months);
+      sum += hours[m] || 0;
+    });
+    return +(sum / monthlyHours).toFixed(2);
+  });
+  
+  const personnelDatasets = [];
+  if (selectedPersonnelList.length > 0) {
+    // Generate label text
+    let labelText;
+    if (selectedPersonnelList.length === 1) {
+      labelText = selectedPersonnelList[0];
+    } else {
+      // Check if TBD is included
+      const hasTBD = selectedPersonnelList.includes('TBD');
+      const regularCount = selectedPersonnelList.filter(p => p !== 'TBD').length;
+      if (hasTBD && regularCount === 0) {
+        labelText = 'TBD';
+      } else if (hasTBD) {
+        labelText = `${regularCount} 人 + TBD 合计`;
+      } else {
+        labelText = `${selectedPersonnelList.length} 人合计`;
+      }
+    }
+    personnelDatasets.push({
+      label: labelText,
+      data: personnelData,
+      borderColor: '#077b70',
+      backgroundColor: 'rgba(7,123,112,0.15)',
+      borderWidth: 2.5,
+      pointRadius: 3,
+      tension: 0.3,
+      fill: true
+    });
+  }
+
+  // Auto-calculate Y-axis max for personnel chart
+  const personnelMax = personnelData.length > 0 ? Math.max(...personnelData) : 20;
+  const personnelYMax = Math.ceil(personnelMax * 1.1) || 20;
+
+  const chartOptionsPersonnel = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { font: { size: 11 }, boxWidth: 12, padding: 10 }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} FTE`
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 11 }, maxRotation: 45 }
+      },
+      y: {
+        beginAtZero: true,
+        max: personnelYMax,
+        title: { display: true, text: 'FTE (人月)', font: { size: 12, weight: '600' } },
+        grid: { color: '#f3f4f6' },
+        ticks: { font: { size: 11 } }
+      }
+    }
+  };
+
+  if (state.fteChartByPersonnel) state.fteChartByPersonnel.destroy();
+  const ctx2 = document.getElementById('fteChartByPersonnel').getContext('2d');
+  state.fteChartByPersonnel = new Chart(ctx2, {
+    type: 'line',
+    data: { labels, datasets: personnelDatasets },
+    plugins: [currentTimeLinePlugin],
+    options: chartOptionsPersonnel
+  });
+}
+
+// ============ Summary Table ============
+function switchSummaryView(view, btn) {
+  state.currentSummaryView = view;
+  document.querySelectorAll('.summary-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderSummaryTable();
+}
+
+function renderSummaryTable() {
+  const wrapper = document.getElementById('summaryTableWrapper');
+  const monthlyHours = parseFloat(document.getElementById('monthlyHours').value) || 132;
+  
+  // Get year range from controls
+  const startYear = parseInt(document.getElementById('summaryStartYear').value) || 2026;
+  const endYear = parseInt(document.getElementById('summaryEndYear').value) || 2027;
+  
+  // Filter months by year range
+  const months = state.allMonths.filter(m => {
+    const year = parseInt(m.split('-')[0]);
+    return year >= startYear && year <= endYear;
+  });
+
+  if (months.length === 0) {
+    wrapper.innerHTML = '<div class="empty-state">所选年份范围内暂无数据</div>';
+    return;
+  }
+
+  // Group months by quarter and year
+  const quarters = {}; // '2026-Q1' -> ['2026-01','2026-02','2026-03']
+  const years = {};    // '2026' -> ['2026-01', ...]
+  months.forEach(m => {
+    const [y, mm] = m.split('-');
+    const q = `Q${Math.ceil(parseInt(mm)/3)}`;
+    const qKey = `${y}-${q}`;
+    if (!quarters[qKey]) quarters[qKey] = [];
+    quarters[qKey].push(m);
+    if (!years[y]) years[y] = [];
+    years[y].push(m);
+  });
+
+  const qKeys = Object.keys(quarters).sort();
+  const yKeys = Object.keys(years).sort();
+
+  // Build column structure - quarters grouped by year, with year total after each year's quarters
+  const columns = [];
+  yKeys.forEach(y => {
+    // Add quarters for this year
+    qKeys.filter(q => q.startsWith(y + '-')).forEach(q => {
+      columns.push({ key: q, label: q, type: 'quarter', months: quarters[q] });
+    });
+    // Add year total after its quarters
+    columns.push({ key: y + '-total', label: y + ' 年', type: 'year', months: years[y] });
+  });
+  columns.push({ key: 'grand-total', label: '总计', type: 'grand', months: months });
+
+  // Compute data based on view
+  let rows = [];
+  const view = state.currentSummaryView;
+
+  // Helper: extract drug name from compound (e.g., LY03015 from LY03015-204)
+  const extractDrug = (compound) => {
+    if (!compound) return '';
+    const match = compound.match(/^([A-Za-z]+\d+)/);
+    return match ? match[1] : compound;
+  };
+
+  if (view === 'project') {
+    state.allProjects.forEach(p => {
+      const row = { label: p, data: {} };
+      columns.forEach(col => {
+        let total = 0;
+        state.workData.forEach(rec => {
+          if (`${rec.compound}-${rec.protocol}` !== p) return;
+          col.months.forEach(m => { total += (rec.hours[m] || 0); });
+        });
+        row.data[col.key] = total / (monthlyHours * col.months.length);
+      });
+      rows.push(row);
+    });
+  } else if (view === 'drug') {
+    // Group by drug name
+    const drugSet = new Set();
+    state.workData.forEach(rec => {
+      const drug = extractDrug(rec.compound);
+      if (drug) drugSet.add(drug);
+    });
+    const drugs = Array.from(drugSet).sort();
+    
+    drugs.forEach(drug => {
+      const row = { label: drug, data: {} };
+      columns.forEach(col => {
+        let total = 0;
+        state.workData.forEach(rec => {
+          if (extractDrug(rec.compound) !== drug) return;
+          col.months.forEach(m => { total += (rec.hours[m] || 0); });
+        });
+        row.data[col.key] = total / (monthlyHours * col.months.length);
+      });
+      rows.push(row);
+    });
+  } else if (view === 'function') {
+    const roles = ['ST', 'PG', 'DM', 'MG'];
+    roles.forEach(role => {
+      const hasData = state.workData.some(r => r.role === role);
+      if (!hasData) return;
+      const row = { label: role, data: {} };
+      columns.forEach(col => {
+        let total = 0;
+        state.workData.forEach(rec => {
+          if (rec.role !== role) return;
+          col.months.forEach(m => { total += (rec.hours[m] || 0); });
+        });
+        row.data[col.key] = total / (monthlyHours * col.months.length);
+      });
+      rows.push(row);
+    });
+  } else if (view === 'personnel') {
+    // Include all personnel plus TBD
+    const allPersonnelWithTBD = [...state.allPersonnel, 'TBD'];
+    allPersonnelWithTBD.forEach(p => {
+      const row = { label: p, data: {} };
+      columns.forEach(col => {
+        let total = 0;
+        state.workData.forEach(rec => {
+          // Handle TBD: match empty/null personnel or 'TBD'/'NA' values
+          if (p === 'TBD') {
+            const rp = rec.personnel ? rec.personnel.trim() : '';
+            if (rp !== '' && rp !== 'TBD' && rp !== 'NA') return;
+          } else {
+            if (rec.personnel !== p) return;
+          }
+          col.months.forEach(m => { total += (rec.hours[m] || 0); });
+        });
+        row.data[col.key] = total / (monthlyHours * col.months.length);
+      });
+      rows.push(row);
+    });
+  }
+
+  // Total row
+  const totalRow = { label: '【合计】', data: {}, isTotal: true };
+  columns.forEach(col => {
+    let total = 0;
+    state.workData.forEach(rec => {
+      col.months.forEach(m => { total += (rec.hours[m] || 0); });
+    });
+    totalRow.data[col.key] = total / (monthlyHours * col.months.length);
+  });
+
+  // Build HTML
+  let html = '<table class="summary-table"><thead><tr>';
+  const viewLabel = view === 'project' ? '项目' : view === 'drug' ? '药物' : view === 'function' ? '职能' : '人员';
+  html += `<th>${viewLabel}</th>`;
+  columns.forEach(col => {
+    const cls = col.type === 'year' ? 'year-col' : col.type === 'grand' ? 'total-col' : '';
+    html += `<th class="${cls}">${col.label}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  rows.forEach(row => {
+    html += `<tr${row.isTotal ? ' class="total-row"' : ''}>`;
+    html += `<td>${row.label}</td>`;
+    columns.forEach(col => {
+      const cls = col.type === 'year' ? 'year-col' : col.type === 'grand' ? 'total-col' : '';
+      html += `<td class="${cls}">${row.data[col.key].toFixed(2)}</td>`;
+    });
+    html += '</tr>';
+  });
+
+  // Total row
+  html += '<tr class="total-row">';
+  html += `<td>${totalRow.label}</td>`;
+  columns.forEach(col => {
+    const cls = col.type === 'year' ? 'year-col' : col.type === 'grand' ? 'total-col' : '';
+    html += `<td class="${cls}">${totalRow.data[col.key].toFixed(2)}</td>`;
+  });
+  html += '</tr>';
+
+  html += '</tbody></table>';
+  wrapper.innerHTML = html;
+}
+
+// ============ PNG Export ============
+async function exportCardPNG(elementId) {
+  const btn = event.target;
+  const origText = btn.textContent;
+  btn.textContent = '⏳ 生成中...';
+  btn.disabled = true;
+
+  try {
+    const element = document.getElementById(elementId);
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      logging: false
+    });
+
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const now = new Date();
+      const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+      
+      let name = '';
+      if (elementId === 'ganttExport') name = '项目时间线';
+      else if (elementId === 'fteExport') name = 'FTE趋势分析';
+      else if (elementId === 'summaryExport') name = 'FTE汇总表';
+      
+      a.download = `${name}_${ts}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  } catch (err) {
+    alert('导出失败: ' + err.message);
+    console.error(err);
+  } finally {
+    btn.textContent = origText;
+    btn.disabled = false;
+  }
+}
+
+// ============ Custom Tooltip (Fast Hover) ============
+(function initCustomTooltip() {
+  const tooltip = document.createElement('div');
+  tooltip.className = 'custom-tooltip';
+  document.body.appendChild(tooltip);
+
+  document.addEventListener('mouseover', function(e) {
+    const target = e.target.closest('[data-tooltip]');
+    if (target) {
+      const text = target.getAttribute('data-tooltip');
+      tooltip.textContent = text;
+      tooltip.classList.add('show');
+    }
+  });
+
+  document.addEventListener('mouseout', function(e) {
+    const target = e.target.closest('[data-tooltip]');
+    if (target) {
+      tooltip.classList.remove('show');
+    }
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (tooltip.classList.contains('show')) {
+      const x = e.clientX + 12;
+      const y = e.clientY + 12;
+      // Keep tooltip within viewport
+      const maxX = window.innerWidth - tooltip.offsetWidth - 20;
+      const maxY = window.innerHeight - tooltip.offsetHeight - 20;
+      tooltip.style.left = Math.min(x, maxX) + 'px';
+      tooltip.style.top = Math.min(y, maxY) + 'px';
+    }
+  });
+})();
+</script>
+</body>
+</html>
